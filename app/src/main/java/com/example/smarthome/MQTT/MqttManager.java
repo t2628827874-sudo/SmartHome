@@ -3,6 +3,7 @@ package com.example.smarthome.MQTT;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -15,6 +16,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONObject;
 
 public class MqttManager {
+    private static final String TAG = "MqttManager";
     private MqttAndroidClient client;
     private final String serverUri = "tcp://bj-2-mqtt.iot-api.com:1883";
     private boolean isConnected = false;
@@ -22,11 +24,11 @@ public class MqttManager {
     private final String username;
     private final String password;
     private final String statusKey;
-    private final String clientId = "Android_SmartHome_App_" + System.currentTimeMillis();
+    private final String clientId;
     private final Context context;
     
     private static final int RECONNECT_DELAY_MS = 5000;
-    private static final int CONNECTION_TIMEOUT_MS = 5000;
+    private static final int CONNECTION_TIMEOUT_MS = 10000;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable reconnectRunnable;
     private Runnable timeoutRunnable;
@@ -48,16 +50,21 @@ public class MqttManager {
         this.username = username;
         this.password = password;
         this.statusKey = statusKey;
+        this.clientId = "Android_" + username + "_" + System.currentTimeMillis();
+        Log.d(TAG, "创建MqttManager: username=" + username + ", statusKey=" + statusKey);
         createClient();
     }
 
     private void createClient() {
         client = new MqttAndroidClient(context.getApplicationContext(), serverUri, clientId);
+        Log.d(TAG, "创建MQTT客户端: clientId=" + clientId);
+        
         client.setCallback(new MqttCallbackExtended() {
             @Override
             public void connectComplete(boolean reconnect, String serverURI) {
                 isConnected = true;
                 cancelTimeout();
+                Log.d(TAG, "[" + username + "] 连接成功! reconnect=" + reconnect);
                 subscribe("attributes/push");
                 subscribe("attributes/get/response/+");
                 requestInitialState();
@@ -69,6 +76,7 @@ public class MqttManager {
             @Override
             public void connectionLost(Throwable cause) {
                 isConnected = false;
+                Log.w(TAG, "[" + username + "] 连接丢失: " + (cause != null ? cause.getMessage() : "unknown"));
                 if (connectionListener != null) {
                     handler.post(() -> connectionListener.onDisconnected());
                 }
@@ -78,6 +86,8 @@ public class MqttManager {
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 String payload = new String(message.getPayload());
+                Log.d(TAG, "[" + username + "] 收到消息: topic=" + topic + ", payload=" + payload);
+                
                 JSONObject object = new JSONObject(payload);
                 try {
                     Boolean newState = null;
@@ -91,13 +101,14 @@ public class MqttManager {
                     }
                     if (newState != null) {
                         lastState = newState;
+                        Log.d(TAG, "[" + username + "] 状态更新: " + statusKey + "=" + newState);
                         if (stateChangeListener != null) {
                             Boolean finalNewState = newState;
                             handler.post(() -> stateChangeListener.onStateChanged(finalNewState));
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "[" + username + "] 解析消息失败: " + e.getMessage());
                 }
             }
 
@@ -118,23 +129,26 @@ public class MqttManager {
     private void subscribe(String topic) {
         try {
             client.subscribe(topic, 0);
+            Log.d(TAG, "[" + username + "] 订阅主题: " + topic);
         } catch (MqttException e) {
-            e.printStackTrace();
+            Log.e(TAG, "[" + username + "] 订阅失败: " + e.getMessage());
         }
     }
 
     private void requestInitialState() {
         if (!isConnected || client == null) {
+            Log.w(TAG, "[" + username + "] 无法请求初始状态: 未连接");
             return;
         }
         try {
             String topic = "attributes/get/1000";
             String payload = "{\"keys\":[\"" + statusKey + "\"]}";
+            Log.d(TAG, "[" + username + "] 请求初始状态: " + payload);
             MqttMessage msg = new MqttMessage(payload.getBytes());
             msg.setQos(0);
             client.publish(topic, msg);
         } catch (MqttException e) {
-            e.printStackTrace();
+            Log.e(TAG, "[" + username + "] 请求初始状态失败: " + e.getMessage());
         }
     }
 
@@ -147,6 +161,8 @@ public class MqttManager {
     }
 
     public void connect() {
+        Log.d(TAG, "[" + username + "] 开始连接...");
+        
         MqttConnectOptions options = new MqttConnectOptions();
         options.setUserName(username);
         options.setPassword(password.toCharArray());
@@ -162,21 +178,23 @@ public class MqttManager {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     isConnected = true;
+                    Log.d(TAG, "[" + username + "] 连接请求成功");
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     isConnected = false;
                     cancelTimeout();
+                    String error = exception != null ? exception.getMessage() : "Unknown error";
+                    Log.e(TAG, "[" + username + "] 连接失败: " + error);
                     if (connectionListener != null) {
-                        String error = exception != null ? exception.getMessage() : "Unknown error";
                         handler.post(() -> connectionListener.onConnectionFailed(error));
                     }
                     scheduleReconnect();
                 }
             });
         } catch (MqttException e) {
-            e.printStackTrace();
+            Log.e(TAG, "[" + username + "] 连接异常: " + e.getMessage());
             if (connectionListener != null) {
                 handler.post(() -> connectionListener.onConnectionFailed(e.getMessage()));
             }
@@ -187,6 +205,7 @@ public class MqttManager {
         cancelTimeout();
         timeoutRunnable = () -> {
             if (!isConnected && connectionListener != null) {
+                Log.w(TAG, "[" + username + "] 连接超时");
                 connectionListener.onConnectionFailed("Connection timeout");
             }
         };
@@ -204,6 +223,7 @@ public class MqttManager {
         cancelReconnect();
         reconnectRunnable = () -> {
             if (!isConnected) {
+                Log.d(TAG, "[" + username + "] 尝试重新连接...");
                 connect();
             }
         };
@@ -220,12 +240,15 @@ public class MqttManager {
     public void publish(String property, Object value) {
         String topic = "attributes";
         String payload = "{\"" + property + "\":" + value + "}";
+        
+        Log.d(TAG, "[" + username + "] 发布消息: " + payload);
 
         if (property != null && property.equals(statusKey) && value instanceof Boolean) {
             lastState = (Boolean) value;
         }
 
         if (!isConnected || client == null) {
+            Log.w(TAG, "[" + username + "] 无法发布: 未连接");
             return;
         }
 
@@ -234,18 +257,19 @@ public class MqttManager {
             msg.setQos(1);
             client.publish(topic, msg);
         } catch (MqttException e) {
-            e.printStackTrace();
+            Log.e(TAG, "[" + username + "] 发布失败: " + e.getMessage());
         }
     }
 
     public void disconnect() {
+        Log.d(TAG, "[" + username + "] 断开连接");
         cancelReconnect();
         cancelTimeout();
         if (client != null && isConnected) {
             try {
                 client.disconnect();
             } catch (MqttException e) {
-                e.printStackTrace();
+                Log.e(TAG, "[" + username + "] 断开连接失败: " + e.getMessage());
             }
         }
         isConnected = false;

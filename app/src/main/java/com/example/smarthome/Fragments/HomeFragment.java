@@ -27,6 +27,7 @@ import com.example.smarthome.Adapter.RecyclerViewAdapter;
 import com.example.smarthome.MQTT.MqttManager;
 import com.example.smarthome.Model.DeviceCardModel;
 import com.example.smarthome.R;
+import com.example.smarthome.Utils.LocalDeviceManager;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.tabs.TabLayout;
 
@@ -37,11 +38,11 @@ public class HomeFragment extends Fragment {
     private ImageButton home_btn_img;
     private TabLayout home_tablayout;
     private FrameLayout home_scroll_content;
-    private RecyclerView recyclerView;
     
     private MqttManager livingLedMqttManager;
     private MqttManager livingCameraMqttManager;
     private MqttManager diningLedMqttManager;
+    private LocalDeviceManager localDeviceManager;
 
     private static final String TAG = "HomeFragment";
     
@@ -54,7 +55,7 @@ public class HomeFragment extends Fragment {
 
         initView(view);
         setUserName();
-        initMqttManager();
+        initManagers();
 
         home_btn_img.setOnClickListener(v -> {
             PopupMenu popupMenu = new PopupMenu(requireContext(), v);
@@ -89,13 +90,29 @@ public class HomeFragment extends Fragment {
         switchContent(0);
     }
 
-    private void initMqttManager() {
+    private void initManagers() {
+        localDeviceManager = LocalDeviceManager.getInstance(requireContext());
+        
         livingLedMqttManager = new MqttManager(
                 requireContext(),
                 "ch1hpsnpie8hxwuj",
                 "odoscHX24A",
                 "state"
         );
+        livingLedMqttManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
+            @Override
+            public void onConnected() {
+                Log.d(TAG, "客厅灯连接成功");
+            }
+            @Override
+            public void onDisconnected() {
+                Log.w(TAG, "客厅灯连接断开");
+            }
+            @Override
+            public void onConnectionFailed(String error) {
+                Log.e(TAG, "客厅灯连接失败: " + error);
+            }
+        });
         livingLedMqttManager.connect();
 
         livingCameraMqttManager = new MqttManager(
@@ -104,6 +121,20 @@ public class HomeFragment extends Fragment {
                 "odoscHX24A",
                 "camera_status"
         );
+        livingCameraMqttManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
+            @Override
+            public void onConnected() {
+                Log.d(TAG, "摄像头连接成功");
+            }
+            @Override
+            public void onDisconnected() {
+                Log.w(TAG, "摄像头连接断开");
+            }
+            @Override
+            public void onConnectionFailed(String error) {
+                Log.e(TAG, "摄像头连接失败: " + error);
+            }
+        });
         livingCameraMqttManager.connect();
 
         diningLedMqttManager = new MqttManager(
@@ -112,12 +143,27 @@ public class HomeFragment extends Fragment {
                 "odoscHX24A",
                 "state"
         );
-        diningLedMqttManager.setOnStateChangeListener(newState -> {
-            if (currentTabPosition == 0 && allTabAdapter != null) {
-                updateAllTabLightCount();
+        diningLedMqttManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
+            @Override
+            public void onConnected() {
+                Log.d(TAG, "餐厅灯连接成功");
+            }
+            @Override
+            public void onDisconnected() {
+                Log.w(TAG, "餐厅灯连接断开");
+            }
+            @Override
+            public void onConnectionFailed(String error) {
+                Log.e(TAG, "餐厅灯连接失败: " + error);
             }
         });
         diningLedMqttManager.connect();
+        
+        localDeviceManager.setOnDeviceStateChangeListener((deviceId, newState) -> {
+            if (currentTabPosition == 0 && allTabAdapter != null) {
+                requireActivity().runOnUiThread(() -> updateAllTabStats());
+            }
+        });
     }
 
     @SuppressLint("MissingInflatedId")
@@ -149,6 +195,8 @@ public class HomeFragment extends Fragment {
             setupLivingTab(root);
         } else if (position == 2) {
             setupDiningTab(root);
+        } else if (position == 3) {
+            setupBedroomTab(root);
         }
     }
 
@@ -158,28 +206,66 @@ public class HomeFragment extends Fragment {
         
         int lightOnCount = getLightOnCount();
         recyclerViewList.add(new DeviceCardModel(formatLightSubtitle(lightOnCount), "灯泡", R.drawable.light));
-        recyclerViewList.add(new DeviceCardModel("一个窗帘开", "窗帘", R.drawable.curtain));
+        
+        int curtainOnCount = localDeviceManager.getDeviceState("bedroom_curtain") ? 1 : 0;
+        recyclerViewList.add(new DeviceCardModel(formatCurtainSubtitle(curtainOnCount), "窗帘", R.drawable.curtain));
+        
         recyclerViewList.add(new DeviceCardModel("温度湿度", "环境", R.drawable.circumstance));
-        recyclerViewList.add(new DeviceCardModel("正在工作", "扫地机器人", R.drawable.robot));
-        recyclerViewList.add(new DeviceCardModel("制冷中", "空调", R.drawable.ic_aircon));
+        
+        String robotStatus = localDeviceManager.getDeviceState("bedroom_robot") ? "正在工作" : "已停止";
+        recyclerViewList.add(new DeviceCardModel(robotStatus, "扫地机器人", R.drawable.robot));
+        
+        int airconOnCount = getAirconOnCount();
+        recyclerViewList.add(new DeviceCardModel(formatAirconSubtitle(airconOnCount), "空调", R.drawable.ic_aircon));
         
         int cameraOnCount = getCameraOnCount();
         recyclerViewList.add(new DeviceCardModel(formatCameraSubtitle(cameraOnCount), "摄像头", R.drawable.camera));
         
-        recyclerViewList.add(new DeviceCardModel("运行中", "冰箱", R.drawable.ic_fridge));
-        recyclerViewList.add(new DeviceCardModel("湿度45%", "除湿器", R.drawable.ic_dehumidifier));
-        recyclerViewList.add(new DeviceCardModel("待机中", "投影仪", R.drawable.ic_projector));
-        recyclerViewList.add(new DeviceCardModel("已暂停", "音响", R.drawable.ic_speaker));
+        String fridgeStatus = localDeviceManager.getDeviceState("dining_fridge") ? "运行中" : "已关闭";
+        recyclerViewList.add(new DeviceCardModel(fridgeStatus, "冰箱", R.drawable.ic_fridge));
+        
+        String dehumidifierStatus = localDeviceManager.getDeviceState("bedroom_dehumidifier") ? "运行中" : "已关闭";
+        recyclerViewList.add(new DeviceCardModel(dehumidifierStatus, "除湿器", R.drawable.ic_dehumidifier));
+        
+        String projectorStatus = localDeviceManager.getDeviceState("bedroom_projector") ? "运行中" : "已关闭";
+        recyclerViewList.add(new DeviceCardModel(projectorStatus, "投影仪", R.drawable.ic_projector));
+        
+        String speakerStatus = localDeviceManager.getDeviceState("bedroom_speaker") ? "播放中" : "已暂停";
+        recyclerViewList.add(new DeviceCardModel(speakerStatus, "音响", R.drawable.ic_speaker));
 
         allTabAdapter = new RecyclerViewAdapter(requireContext(), recyclerViewList);
         recyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
         recyclerView.setAdapter(allTabAdapter);
     }
 
-    private void updateAllTabLightCount() {
+    private void updateAllTabStats() {
         if (allTabAdapter != null) {
             int lightOnCount = getLightOnCount();
             allTabAdapter.updateItem(0, formatLightSubtitle(lightOnCount));
+            
+            int curtainOnCount = localDeviceManager.getDeviceState("bedroom_curtain") ? 1 : 0;
+            allTabAdapter.updateItem(1, formatCurtainSubtitle(curtainOnCount));
+            
+            String robotStatus = localDeviceManager.getDeviceState("bedroom_robot") ? "正在工作" : "已停止";
+            allTabAdapter.updateItem(3, robotStatus);
+            
+            int airconOnCount = getAirconOnCount();
+            allTabAdapter.updateItem(4, formatAirconSubtitle(airconOnCount));
+            
+            int cameraOnCount = getCameraOnCount();
+            allTabAdapter.updateItem(5, formatCameraSubtitle(cameraOnCount));
+            
+            String fridgeStatus = localDeviceManager.getDeviceState("dining_fridge") ? "运行中" : "已关闭";
+            allTabAdapter.updateItem(6, fridgeStatus);
+            
+            String dehumidifierStatus = localDeviceManager.getDeviceState("bedroom_dehumidifier") ? "运行中" : "已关闭";
+            allTabAdapter.updateItem(7, dehumidifierStatus);
+            
+            String projectorStatus = localDeviceManager.getDeviceState("bedroom_projector") ? "运行中" : "已关闭";
+            allTabAdapter.updateItem(8, projectorStatus);
+            
+            String speakerStatus = localDeviceManager.getDeviceState("bedroom_speaker") ? "播放中" : "已暂停";
+            allTabAdapter.updateItem(9, speakerStatus);
         }
     }
 
@@ -195,7 +281,7 @@ public class HomeFragment extends Fragment {
             sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 livingLedMqttManager.publish("state", isChecked);
                 if (currentTabPosition == 0) {
-                    updateAllTabLightCount();
+                    updateAllTabStats();
                 }
             });
             
@@ -206,7 +292,7 @@ public class HomeFragment extends Fragment {
                     }
                 }
                 if (currentTabPosition == 0) {
-                    updateAllTabLightCount();
+                    updateAllTabStats();
                 }
             });
         }
@@ -229,27 +315,94 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupDiningTab(View root) {
-        SwitchMaterial sw = root.findViewById(R.id.sw_toggle);
+        SwitchMaterial swLed = root.findViewById(R.id.sw_toggle);
+        SwitchMaterial swFridge = root.findViewById(R.id.sw_toggle2);
+        SwitchMaterial swAircon = root.findViewById(R.id.sw_toggle3);
         
-        if (sw != null) {
+        if (swLed != null) {
             Boolean lastState = diningLedMqttManager.getLastState();
             if (lastState != null) {
-                sw.setChecked(lastState);
+                swLed.setChecked(lastState);
             }
-            sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            swLed.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 diningLedMqttManager.publish("state", isChecked);
                 if (currentTabPosition == 0) {
-                    updateAllTabLightCount();
+                    updateAllTabStats();
                 }
             });
             
             diningLedMqttManager.setOnStateChangeListener(newState -> {
-                if (sw != null && newState != null) {
-                    requireActivity().runOnUiThread(() -> sw.setChecked(newState));
+                if (swLed != null && newState != null) {
+                    requireActivity().runOnUiThread(() -> swLed.setChecked(newState));
                 }
                 if (currentTabPosition == 0) {
-                    updateAllTabLightCount();
+                    updateAllTabStats();
                 }
+            });
+        }
+        
+        if (swFridge != null) {
+            swFridge.setChecked(localDeviceManager.getDeviceState("dining_fridge"));
+            swFridge.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("dining_fridge", isChecked);
+            });
+        }
+        
+        if (swAircon != null) {
+            swAircon.setChecked(localDeviceManager.getDeviceState("dining_aircon"));
+            swAircon.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("dining_aircon", isChecked);
+            });
+        }
+    }
+
+    private void setupBedroomTab(View root) {
+        SwitchMaterial swDehumidifier = root.findViewById(R.id.sw_toggle);
+        SwitchMaterial swAircon = root.findViewById(R.id.sw_toggle3);
+        SwitchMaterial swCurtain = root.findViewById(R.id.sw_toggle4);
+        SwitchMaterial swRobot = root.findViewById(R.id.sw_toggle5);
+        SwitchMaterial swProjector = root.findViewById(R.id.sw_toggle6);
+        SwitchMaterial swSpeaker = root.findViewById(R.id.sw_toggle7);
+        
+        if (swDehumidifier != null) {
+            swDehumidifier.setChecked(localDeviceManager.getDeviceState("bedroom_dehumidifier"));
+            swDehumidifier.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("bedroom_dehumidifier", isChecked);
+            });
+        }
+        
+        if (swAircon != null) {
+            swAircon.setChecked(localDeviceManager.getDeviceState("bedroom_aircon"));
+            swAircon.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("bedroom_aircon", isChecked);
+            });
+        }
+        
+        if (swCurtain != null) {
+            swCurtain.setChecked(localDeviceManager.getDeviceState("bedroom_curtain"));
+            swCurtain.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("bedroom_curtain", isChecked);
+            });
+        }
+        
+        if (swRobot != null) {
+            swRobot.setChecked(localDeviceManager.getDeviceState("bedroom_robot"));
+            swRobot.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("bedroom_robot", isChecked);
+            });
+        }
+        
+        if (swProjector != null) {
+            swProjector.setChecked(localDeviceManager.getDeviceState("bedroom_projector"));
+            swProjector.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("bedroom_projector", isChecked);
+            });
+        }
+        
+        if (swSpeaker != null) {
+            swSpeaker.setChecked(localDeviceManager.getDeviceState("bedroom_speaker"));
+            swSpeaker.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localDeviceManager.setDeviceState("bedroom_speaker", isChecked);
             });
         }
     }
@@ -273,6 +426,17 @@ public class HomeFragment extends Fragment {
         return count;
     }
 
+    private int getAirconOnCount() {
+        int count = 0;
+        if (localDeviceManager.getDeviceState("dining_aircon")) {
+            count++;
+        }
+        if (localDeviceManager.getDeviceState("bedroom_aircon")) {
+            count++;
+        }
+        return count;
+    }
+
     private String formatLightSubtitle(int count) {
         if (count <= 0) {
             return "没有灯泡亮";
@@ -290,6 +454,26 @@ public class HomeFragment extends Fragment {
             return "一个正在工作";
         } else {
             return count + "个正在工作";
+        }
+    }
+
+    private String formatAirconSubtitle(int count) {
+        if (count <= 0) {
+            return "没有空调运行";
+        } else if (count == 1) {
+            return "一个空调运行";
+        } else {
+            return count + "个空调运行";
+        }
+    }
+
+    private String formatCurtainSubtitle(int count) {
+        if (count <= 0) {
+            return "没有窗帘打开";
+        } else if (count == 1) {
+            return "一个窗帘打开";
+        } else {
+            return count + "个窗帘打开";
         }
     }
 
