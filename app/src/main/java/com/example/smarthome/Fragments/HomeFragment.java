@@ -98,10 +98,8 @@ public class HomeFragment extends Fragment {
 
             }
         });
-        //默认显示0,客厅的xml
+        //默认显示0,全屋的xml
         switchContent(0);
-
-
 
     }
 
@@ -134,6 +132,7 @@ public class HomeFragment extends Fragment {
         home_scroll_content.removeAllViews();
 
         int layoutId;//存储id
+        //动态加载布局
         if (position == 0) { // 全屋
             layoutId = R.layout.home_tab_all;
         } else if(position == 1) {             // 客厅（先用位置 1，其它先不管）
@@ -157,9 +156,12 @@ public class HomeFragment extends Fragment {
             recyclerViewList.add(new DeviceCardModel("一个窗帘开","窗帘", R.drawable.curtain));
             recyclerViewList.add(new DeviceCardModel("温度湿度","环境", R.drawable.circumstance));
             recyclerViewList.add(new DeviceCardModel("正在工作","扫地机器人", R.drawable.robot));
+            //添加空调设备
+            recyclerViewList.add(new DeviceCardModel("制冷中","空调", R.drawable.ic_aircon));
             //统计摄像头工作的个数
             int cameraOnCount=getCameraOnCount();
             recyclerViewList.add(new DeviceCardModel(formatCameraSubtitle(cameraOnCount),"摄像头", R.drawable.camera));
+
 
             RecyclerViewAdapter recyclerViewAdapter = new RecyclerViewAdapter(requireContext(), recyclerViewList);
             recyclerView.setLayoutManager(new GridLayoutManager(requireContext(),2));
