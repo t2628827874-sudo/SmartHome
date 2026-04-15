@@ -1,0 +1,45 @@
+# 编译生成的 APK/AAB 等安装包
+*.apk
+*.aab
+*.apks
+*.aar
+
+# ART/Dalvik 字节码文件
+*.dex
+
+# Java 编译生成的 class 文件
+*.class
+
+# 项目编译输出目录
+/app/build/
+/build/
+
+# Gradle 相关文件
+.gradle/
+gradle-app.setting
+.gradletasknamecache
+!gradle-wrapper.jar
+
+# Android Studio IDE 配置文件
+.idea/
+*.iml
+*.iws
+*.lvl
+*.tsf
+*.tcf
+
+# 本地 SDK 路径等敏感配置
+local.properties
+
+# 日志文件
+*.log
+*.tmp
+
+# 系统自动生成的文件
+.DS_Store
+Thumbs.db
+
+# 本地配置文件（如密钥、环境变量）
+*.keystore
+*.jks
+.env

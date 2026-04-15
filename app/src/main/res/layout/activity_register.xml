@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".RegisterActivity"
+    android:padding="20dp"
+    android:background="@color/white">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/register_toolbar"
+        android:layout_width="wrap_content"
+        android:layout_height="?attr/actionBarSize"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:navigationIcon="?attr/homeAsUpIndicator"/>
+
+    <TextView
+        android:id="@+id/register_tv1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="92dp"
+        android:text="设置密码"
+        android:textSize="35sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <TextView
+        android:id="@+id/register_tv2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="要继续，请验证你的身份"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="@+id/register_tv1"
+        app:layout_constraintTop_toBottomOf="@+id/register_tv1" />
+
+    <EditText
+        android:id="@+id/register_et_account"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:drawableLeft="@drawable/login_account"
+        android:hint="请输入您的账号"
+        app:layout_constraintStart_toStartOf="@+id/register_tv2"
+        app:layout_constraintTop_toBottomOf="@+id/register_tv2" />
+
+    <EditText
+        android:id="@+id/register_et_pwd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableLeft="@drawable/login_psw"
+        android:hint="请输入您的密码"
+        android:inputType="textPassword"
+        app:layout_constraintStart_toStartOf="@+id/register_et_account"
+        app:layout_constraintTop_toBottomOf="@+id/register_et_account" />
+
+    <EditText
+        android:id="@+id/register_et_pwd2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawableLeft="@drawable/login_psw"
+        android:hint="再次输入你的密码"
+        android:inputType="textPassword"
+        app:layout_constraintStart_toStartOf="@+id/register_et_pwd"
+        app:layout_constraintTop_toBottomOf="@+id/register_et_pwd" />
+
+    <Button
+        android:id="@+id/login_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="132dp"
+        android:text="注册"
+        android:onClick="saveUserInfo"
+        app:layout_constraintStart_toStartOf="@+id/login_et_pwd"
+        app:layout_constraintTop_toBottomOf="@+id/register_et_pwd" />
+
+    <TextView
+        android:id="@+id/login_tv3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="104dp"
+        android:layout_marginTop="52dp"
+        android:text="有一个账号？"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="@+id/login_btn"
+        app:layout_constraintTop_toBottomOf="@+id/login_btn" />
+
+    <TextView
+        android:id="@+id/login_to_register"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="去登陆"
+        android:textSize="15sp"
+        android:textColor="#f2d0bf"
+        android:onClick="ToLogin"
+        app:layout_constraintStart_toEndOf="@+id/login_tv3"
+        app:layout_constraintTop_toTopOf="@+id/login_tv3" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

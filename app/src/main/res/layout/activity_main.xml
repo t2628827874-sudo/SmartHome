@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:padding="30dp"
+    tools:context=".MainActivity">
+
+
+    <TextView
+        android:id="@+id/login_tv1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="92dp"
+        android:text="欢迎回来"
+        android:textSize="35sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/login_tv2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="要继续，请验证你的身份"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="@+id/login_tv1"
+        app:layout_constraintTop_toBottomOf="@+id/login_tv1" />
+
+    <EditText
+        android:id="@+id/login_et_account"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="44dp"
+        android:drawableLeft="@drawable/login_account"
+        android:hint="请输入您的账号"
+        app:layout_constraintStart_toStartOf="@+id/login_tv2"
+        app:layout_constraintTop_toBottomOf="@+id/login_tv2" />
+
+    <EditText
+        android:id="@+id/login_et_pwd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textPassword"
+        android:drawableLeft="@drawable/login_psw"
+
+        android:hint="请输入您的密码"
+        app:layout_constraintStart_toStartOf="@+id/login_tv2"
+        app:layout_constraintTop_toBottomOf="@+id/login_et_account" />
+
+    <Button
+        android:id="@+id/login_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="68dp"
+        android:text="登录"
+        android:onClick="login"
+        app:layout_constraintStart_toStartOf="@+id/login_et_pwd"
+        app:layout_constraintTop_toBottomOf="@+id/login_et_pwd" />
+
+    <TextView
+        android:id="@+id/login_tv3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="84dp"
+        android:layout_marginTop="52dp"
+        android:text="还没有账号？"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="@+id/login_btn"
+        app:layout_constraintTop_toBottomOf="@+id/login_btn" />
+
+    <TextView
+        android:id="@+id/login_to_register"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="去注册"
+        android:textSize="15sp"
+        android:onClick="ToRegister"
+        android:textColor="#f2d0bf"
+        app:layout_constraintStart_toEndOf="@+id/login_tv3"
+        app:layout_constraintTop_toTopOf="@+id/login_tv3" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
