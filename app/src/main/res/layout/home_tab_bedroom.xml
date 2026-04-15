@@ -63,51 +63,6 @@
             android:background="@drawable/bg_device_card">
 
             <ImageView
-                android:id="@+id/iv_icon2"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/light"
-                android:layout_marginTop="10dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle2"
-                app:layout_constraintVertical_bias="1.0" />
-
-            <TextView
-                android:id="@+id/tv_title2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="灯泡当前的状态"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/tv_subtitle2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="卧室灯"
-                android:textSize="18sp"
-                app:layout_constraintStart_toStartOf="@+id/tv_title2"
-                app:layout_constraintTop_toBottomOf="@+id/tv_title2" />
-
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/sw_toggle2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="12dp"
-            android:layout_margin="8dp"
-            android:background="@drawable/bg_device_card">
-
-            <ImageView
                 android:id="@+id/iv_icon3"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
