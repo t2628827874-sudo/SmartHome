@@ -165,6 +165,11 @@ public class HomeFragment extends Fragment {
         
         int cameraOnCount = getCameraOnCount();
         recyclerViewList.add(new DeviceCardModel(formatCameraSubtitle(cameraOnCount), "摄像头", R.drawable.camera));
+        
+        recyclerViewList.add(new DeviceCardModel("运行中", "冰箱", R.drawable.ic_fridge));
+        recyclerViewList.add(new DeviceCardModel("湿度45%", "除湿器", R.drawable.ic_dehumidifier));
+        recyclerViewList.add(new DeviceCardModel("待机中", "投影仪", R.drawable.ic_projector));
+        recyclerViewList.add(new DeviceCardModel("已暂停", "音响", R.drawable.ic_speaker));
 
         allTabAdapter = new RecyclerViewAdapter(requireContext(), recyclerViewList);
         recyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
