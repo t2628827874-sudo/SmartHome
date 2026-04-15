@@ -1,188 +1,342 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:layout_margin="8dp"
-        android:background="@drawable/bg_device_card">
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/iv_icon"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_dehumidifier"
-            android:layout_marginTop="10dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tv_subtitle"
-            app:layout_constraintVertical_bias="1.0" />
-
-        <TextView
-            android:id="@+id/tv_title"
-            android:layout_width="wrap_content"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="除湿器运行状态"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card">
 
-        <TextView
-            android:id="@+id/tv_subtitle"
-            android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/iv_icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_dehumidifier"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle"
+                app:layout_constraintVertical_bias="1.0" />
+
+            <TextView
+                android:id="@+id/tv_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="除湿器运行状态"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="除湿器"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="除湿器"
-            android:textSize="18sp"
-            app:layout_constraintStart_toStartOf="@+id/tv_title"
-            app:layout_constraintTop_toBottomOf="@+id/tv_title" />
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card">
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sw_toggle"
-            android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/iv_icon2"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/light"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle2"
+                app:layout_constraintVertical_bias="1.0" />
+
+            <TextView
+                android:id="@+id/tv_title2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="灯泡当前的状态"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_subtitle2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="卧室灯"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title2"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title2" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:layout_margin="8dp"
-        android:background="@drawable/bg_device_card">
+            <ImageView
+                android:id="@+id/iv_icon3"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_aircon"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle3"
+                app:layout_constraintVertical_bias="1.0" />
 
-        <ImageView
-            android:id="@+id/iv_icon2"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/light"
-            android:layout_marginTop="10dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tv_subtitle2"
-            app:layout_constraintVertical_bias="1.0" />
+            <TextView
+                android:id="@+id/tv_title3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="空调运行状态"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_title2"
-            android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/tv_subtitle3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="卧室空调"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title3"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title3" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="灯泡当前的状态"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card">
 
-        <TextView
-            android:id="@+id/tv_subtitle2"
-            android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/iv_icon4"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/curtain"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle4"
+                app:layout_constraintVertical_bias="1.0" />
+
+            <TextView
+                android:id="@+id/tv_title4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="窗帘当前的状态"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_subtitle4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="卧室窗帘"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title4"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title4" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/card_robot"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="卧室灯"
-            android:textSize="18sp"
-            app:layout_constraintStart_toStartOf="@+id/tv_title2"
-            app:layout_constraintTop_toBottomOf="@+id/tv_title2" />
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card"
+            android:clickable="true"
+            android:focusable="true">
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sw_toggle2"
-            android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/iv_icon5"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/robot"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle5"
+                app:layout_constraintVertical_bias="1.0" />
+
+            <TextView
+                android:id="@+id/tv_title5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="清扫进度"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_subtitle5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="扫地机器人"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title5"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title5" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/card_projector"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card"
+            android:clickable="true"
+            android:focusable="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:layout_margin="8dp"
-        android:background="@drawable/bg_device_card">
+            <ImageView
+                android:id="@+id/iv_icon6"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_projector"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle6"
+                app:layout_constraintVertical_bias="1.0" />
 
-        <ImageView
-            android:id="@+id/iv_icon3"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_aircon"
-            android:layout_marginTop="10dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tv_subtitle3"
-            app:layout_constraintVertical_bias="1.0" />
+            <TextView
+                android:id="@+id/tv_title6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="投影状态"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_title3"
-            android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/tv_subtitle6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="投影仪"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title6"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title6" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/card_speaker"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="空调运行状态"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:padding="12dp"
+            android:layout_margin="8dp"
+            android:background="@drawable/bg_device_card"
+            android:clickable="true"
+            android:focusable="true">
 
-        <TextView
-            android:id="@+id/tv_subtitle3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="卧室空调"
-            android:textSize="18sp"
-            app:layout_constraintStart_toStartOf="@+id/tv_title3"
-            app:layout_constraintTop_toBottomOf="@+id/tv_title3" />
+            <ImageView
+                android:id="@+id/iv_icon7"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_speaker"
+                android:layout_marginTop="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_subtitle7"
+                app:layout_constraintVertical_bias="1.0" />
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sw_toggle3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <TextView
+                android:id="@+id/tv_title7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="播放状态"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
-        android:layout_margin="8dp"
-        android:background="@drawable/bg_device_card">
+            <TextView
+                android:id="@+id/tv_subtitle7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="智能音响"
+                android:textSize="18sp"
+                app:layout_constraintStart_toStartOf="@+id/tv_title7"
+                app:layout_constraintTop_toBottomOf="@+id/tv_title7" />
 
-        <ImageView
-            android:id="@+id/iv_icon4"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/curtain"
-            android:layout_marginTop="10dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tv_subtitle4"
-            app:layout_constraintVertical_bias="1.0" />
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/sw_toggle7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <TextView
-            android:id="@+id/tv_title4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="窗帘当前的状态"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+    </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_subtitle4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="卧室窗帘"
-            android:textSize="18sp"
-            app:layout_constraintStart_toStartOf="@+id/tv_title4"
-            app:layout_constraintTop_toBottomOf="@+id/tv_title4" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sw_toggle4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>
