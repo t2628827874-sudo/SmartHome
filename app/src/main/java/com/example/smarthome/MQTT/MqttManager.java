@@ -1,6 +1,8 @@
 package com.example.smarthome.MQTT;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -13,80 +15,121 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONObject;
 
 public class MqttManager {
-    private MqttAndroidClient client;//客户端
-    //private static MqttManager instance;//单例
-    private final String serverUri="tcp://bj-2-mqtt.iot-api.com:1883";
-    private boolean isConnected = false;//判断是否连接上tingscloud
+    private MqttAndroidClient client;
+    private final String serverUri = "tcp://bj-2-mqtt.iot-api.com:1883";
+    private boolean isConnected = false;
     private Boolean lastState = null;
     private final String username;
     private final String password;
-    private final String satusKey;//状态属性名字，不同的标识符不一样
-    private final String clientId = "Android_SmartHome_App_" + System.currentTimeMillis();// APP名称 + 随机数或时间戳
+    private final String statusKey;
+    private final String clientId = "Android_SmartHome_App_" + System.currentTimeMillis();
+    private final Context context;
+    
+    private static final int RECONNECT_DELAY_MS = 5000;
+    private static final int CONNECTION_TIMEOUT_MS = 5000;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable reconnectRunnable;
+    private Runnable timeoutRunnable;
+    private OnStateChangeListener stateChangeListener;
+    private OnConnectionListener connectionListener;
 
-    public MqttManager(Context context,String username,String password,String satusKey) {
+    public interface OnStateChangeListener {
+        void onStateChanged(Boolean newState);
+    }
+
+    public interface OnConnectionListener {
+        void onConnected();
+        void onDisconnected();
+        void onConnectionFailed(String error);
+    }
+
+    public MqttManager(Context context, String username, String password, String statusKey) {
+        this.context = context;
         this.username = username;
         this.password = password;
-        this.satusKey=satusKey;
-        //创建客户端对象
-        client=new MqttAndroidClient(context.getApplicationContext(),serverUri,clientId);
+        this.statusKey = statusKey;
+        createClient();
+    }
+
+    private void createClient() {
+        client = new MqttAndroidClient(context.getApplicationContext(), serverUri, clientId);
         client.setCallback(new MqttCallbackExtended() {
             @Override
             public void connectComplete(boolean reconnect, String serverURI) {
-                //连接成功，发送订阅
                 isConnected = true;
+                cancelTimeout();
                 subscribe("attributes/push");
                 subscribe("attributes/get/response/+");
-                //主动向 ThingsCloud 请求一次 state ,用来初始化开关
                 requestInitialState();
+                if (connectionListener != null) {
+                    handler.post(() -> connectionListener.onConnected());
+                }
             }
-            //连接丢失
+
             @Override
             public void connectionLost(Throwable cause) {
-                //连接失败
-                isConnected=false;
+                isConnected = false;
+                if (connectionListener != null) {
+                    handler.post(() -> connectionListener.onDisconnected());
+                }
+                scheduleReconnect();
             }
-            //有数据到达客户端，解析，客户端收到消息
+
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                String payload=new String(message.getPayload());
-                JSONObject object=new JSONObject(payload);
+                String payload = new String(message.getPayload());
+                JSONObject object = new JSONObject(payload);
                 try {
-                    if(object.has(satusKey)){
-                        lastState=object.getBoolean(satusKey);
+                    Boolean newState = null;
+                    if (object.has(statusKey)) {
+                        newState = object.getBoolean(statusKey);
                     } else if (object.has("attributes")) {
-                        // attributes/get 响应里，state 在 attributes 里面
                         JSONObject attrs = object.getJSONObject("attributes");
-                        if (attrs.has(satusKey)) {
-                            lastState = attrs.getBoolean(satusKey);
+                        if (attrs.has(statusKey)) {
+                            newState = attrs.getBoolean(statusKey);
                         }
                     }
-                }catch (Exception e){
+                    if (newState != null) {
+                        lastState = newState;
+                        if (stateChangeListener != null) {
+                            Boolean finalNewState = newState;
+                            handler.post(() -> stateChangeListener.onStateChanged(finalNewState));
+                        }
+                    }
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-
             }
-            //消息发送完成
+
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {
-
             }
         });
     }
-    private void subscribe(String topic){
+
+    public void setOnStateChangeListener(OnStateChangeListener listener) {
+        this.stateChangeListener = listener;
+    }
+
+    public void setOnConnectionListener(OnConnectionListener listener) {
+        this.connectionListener = listener;
+    }
+
+    private void subscribe(String topic) {
         try {
-            client.subscribe(topic,0);
+            client.subscribe(topic, 0);
         } catch (MqttException e) {
             e.printStackTrace();
         }
     }
-    //主动发一次请求
-    private void requestInitialState(){
+
+    private void requestInitialState() {
         if (!isConnected || client == null) {
             return;
         }
         try {
             String topic = "attributes/get/1000";
-            String payload = "{\"keys\":[\"" + satusKey + "\"]}";
+            String payload = "{\"keys\":[\"" + statusKey + "\"]}";
             MqttMessage msg = new MqttMessage(payload.getBytes());
             msg.setQos(0);
             client.publish(topic, msg);
@@ -94,69 +137,117 @@ public class MqttManager {
             e.printStackTrace();
         }
     }
-//获取最后的state
-    public Boolean getLastState(){
+
+    public Boolean getLastState() {
         return lastState;
     }
 
+    public boolean isConnected() {
+        return isConnected;
+    }
 
-    //获取单例，全应用只有一个MQTT连接
-//    public static synchronized MqttManager getInstance(Context context){
-//        if(instance==null){
-//            instance=new MqttManager(context);
-//        }
-//        return instance;
-//    }
-    //执行连接
-    public void connect(){
-        MqttConnectOptions options=new MqttConnectOptions();
-
+    public void connect() {
+        MqttConnectOptions options = new MqttConnectOptions();
         options.setUserName(username);
         options.setPassword(password.toCharArray());
-        options.setAutomaticReconnect(false);//- - 断线后客户端会自动尝试重连。
+        options.setAutomaticReconnect(true);
         options.setCleanSession(false);
+        options.setConnectionTimeout(10);
+        options.setKeepAliveInterval(60);
+
+        startTimeout();
 
         try {
             client.connect(options, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
-                    // 这里才算真正连上，可以订阅或者上报数据
-                    isConnected=true;
+                    isConnected = true;
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    // 连接失败，看看 exception
-                    isConnected=false;
+                    isConnected = false;
+                    cancelTimeout();
+                    if (connectionListener != null) {
+                        String error = exception != null ? exception.getMessage() : "Unknown error";
+                        handler.post(() -> connectionListener.onConnectionFailed(error));
+                    }
+                    scheduleReconnect();
                 }
             });
         } catch (MqttException e) {
             e.printStackTrace();
+            if (connectionListener != null) {
+                handler.post(() -> connectionListener.onConnectionFailed(e.getMessage()));
+            }
         }
-
     }
-    // 发送指令，客户端给服务器发送
+
+    private void startTimeout() {
+        cancelTimeout();
+        timeoutRunnable = () -> {
+            if (!isConnected && connectionListener != null) {
+                connectionListener.onConnectionFailed("Connection timeout");
+            }
+        };
+        handler.postDelayed(timeoutRunnable, CONNECTION_TIMEOUT_MS);
+    }
+
+    private void cancelTimeout() {
+        if (timeoutRunnable != null) {
+            handler.removeCallbacks(timeoutRunnable);
+            timeoutRunnable = null;
+        }
+    }
+
+    private void scheduleReconnect() {
+        cancelReconnect();
+        reconnectRunnable = () -> {
+            if (!isConnected) {
+                connect();
+            }
+        };
+        handler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS);
+    }
+
+    private void cancelReconnect() {
+        if (reconnectRunnable != null) {
+            handler.removeCallbacks(reconnectRunnable);
+            reconnectRunnable = null;
+        }
+    }
+
     public void publish(String property, Object value) {
         String topic = "attributes";
         String payload = "{\"" + property + "\":" + value + "}";
 
-        // 如果是 satusKey 并且是 Boolean，本地也先记一下
-        if (property != null && property.equals(satusKey) && value instanceof Boolean) {
+        if (property != null && property.equals(statusKey) && value instanceof Boolean) {
             lastState = (Boolean) value;
         }
 
-        // 如果还没连上服务器，就先不发，避免消息丢失
         if (!isConnected || client == null) {
             return;
         }
 
         try {
             MqttMessage msg = new MqttMessage(payload.getBytes());
-            msg.setQos(1); // 至少一次送达
+            msg.setQos(1);
             client.publish(topic, msg);
         } catch (MqttException e) {
             e.printStackTrace();
         }
     }
 
+    public void disconnect() {
+        cancelReconnect();
+        cancelTimeout();
+        if (client != null && isConnected) {
+            try {
+                client.disconnect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+        }
+        isConnected = false;
+    }
 }

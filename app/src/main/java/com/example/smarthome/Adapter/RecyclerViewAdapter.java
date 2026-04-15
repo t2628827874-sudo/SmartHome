@@ -46,6 +46,14 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         return this.list.size();
     }
 
+    public void updateItem(int position, String newSubtitle) {
+        if (position >= 0 && position < list.size()) {
+            DeviceCardModel item = list.get(position);
+            list.set(position, new DeviceCardModel(newSubtitle, item.getTitle(), item.getIconId()));
+            notifyItemChanged(position);
+        }
+    }
+
     public static class MyViewHolder extends RecyclerView.ViewHolder{
         ImageView iv_icon;
         TextView tv_title;
