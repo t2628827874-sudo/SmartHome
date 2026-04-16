@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_intelligent"
     tools:context=".Fragments.IntelligentFragment"
     android:fitsSystemWindows="true">
 
@@ -12,8 +13,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
+        android:layout_marginStart="16dp"
         android:text="谁的家"
         android:textSize="30sp"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -29,7 +33,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 上面的大卡片 -->
         <include
             android:id="@+id/card_current_mode"
             layout="@layout/item_device_card"
@@ -37,7 +40,6 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp" />
 
-        <!-- 下面一行两个小卡片并排 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -60,7 +62,6 @@
                 android:layout_marginStart="6dp" />
         </LinearLayout>
 
-        <!-- 天气卡片 -->
         <include
             android:id="@+id/card_weather"
             layout="@layout/item_weather_card"

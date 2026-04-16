@@ -20,6 +20,13 @@
     <color name="card_background">#FFFFFF</color>
     <color name="card_border">#E0E0E0</color>
     
+    <color name="background_intelligent">#FFF8E1</color>
+    <color name="background_myinfo">#E8F5E9</color>
+    
+    <color name="bottom_nav_background">#FFFFFF</color>
+    <color name="bottom_nav_icon_active">@color/primary</color>
+    <color name="bottom_nav_icon_inactive">#9E9E9E</color>
+    
     <color name="device_card_bg">#F0FFF5</color>
     
     <color name="divider">#EEEEEE</color>
