@@ -24,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.smarthome.Adapter.RecyclerViewAdapter;
+import com.example.smarthome.MQTT.MqttConnectionManager;
 import com.example.smarthome.MQTT.MqttManager;
 import com.example.smarthome.Model.DeviceCardModel;
 import com.example.smarthome.R;
@@ -39,26 +40,31 @@ import java.util.ArrayList;
  * 功能说明：
  * - 显示全屋设备概览和各房间设备控制
  * - 支持客厅、餐厅、卧室三个房间的设备控制
- * - 与IntelligentFragment共享设备状态
+ * - 与IntelligentFragment共享设备状态（通过MqttConnectionManager单例）
  * 
  * 设备控制：
  * - 客厅：灯光、摄像头（MQTT设备）
  * - 餐厅：灯光（MQTT）、冰箱、空调（本地设备）
  * - 卧室：除湿器、空调、窗帘、扫地机器人、投影仪、音响（本地设备）
+ * 
+ * 流控优化：
+ * - 使用MqttConnectionManager单例管理MQTT连接
+ * - 确保每个设备只有一个连接，避免重复连接触发平台流控
  */
 public class HomeFragment extends Fragment {
+    private static final String TAG = "HomeFragment";
+    
     private TextView home_username;
     private ImageButton home_btn_img;
     private TabLayout home_tablayout;
     private FrameLayout home_scroll_content;
     
-    private MqttManager livingLedMqttManager;
-    private MqttManager livingCameraMqttManager;
-    private MqttManager diningLedMqttManager;
+    private MqttConnectionManager.MqttManagerWrapper livingLedManager;
+    private MqttConnectionManager.MqttManagerWrapper livingCameraManager;
+    private MqttConnectionManager.MqttManagerWrapper diningLedManager;
     private LocalDeviceManager localDeviceManager;
+    private MqttConnectionManager mqttConnectionManager;
 
-    private static final String TAG = "HomeFragment";
-    
     private RecyclerViewAdapter allTabAdapter;
     private int currentTabPosition = 0;
     
@@ -110,20 +116,16 @@ public class HomeFragment extends Fragment {
     /**
      * 初始化管理器
      * 
-     * 创建MQTT连接和本地设备管理器，并设置状态监听器
-     * 状态监听器在初始化时就设置，确保能接收到来自IntelligentFragment的设备控制命令
+     * 使用MqttConnectionManager单例获取MQTT连接，确保每个设备只有一个连接
      */
     private void initManagers() {
         localDeviceManager = LocalDeviceManager.getInstance(requireContext());
+        mqttConnectionManager = MqttConnectionManager.getInstance(requireContext());
         
-        // 客厅灯MQTT管理器
-        livingLedMqttManager = new MqttManager(
-                requireContext(),
-                "ch1hpsnpie8hxwuj",
-                "odoscHX24A",
-                "state"
-        );
-        livingLedMqttManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
+        // 客厅灯 - 使用单例管理器
+        livingLedManager = mqttConnectionManager.getOrCreateManager(
+                "ch1hpsnpie8hxwuj", "odoscHX24A", "state");
+        livingLedManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
             @Override
             public void onConnected() {
                 Log.d(TAG, "客厅灯连接成功");
@@ -137,33 +139,20 @@ public class HomeFragment extends Fragment {
                 Log.e(TAG, "客厅灯连接失败: " + error);
             }
         });
-        
-        // 客厅灯状态监听器 - 在初始化时就设置，确保能接收到状态变化
-        livingLedMqttManager.setOnStateChangeListener(newState -> {
+        livingLedManager.setOnStateChangeListener(newState -> {
             Log.d(TAG, "客厅灯状态变化: " + newState);
-            // 更新客厅标签页的开关状态
-            if (livingLedSwitch != null && getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    if (livingLedSwitch != null && newState != null) {
-                        livingLedSwitch.setChecked(newState);
-                    }
-                });
+            if (livingLedSwitch != null && getActivity() != null && newState != null) {
+                getActivity().runOnUiThread(() -> livingLedSwitch.setChecked(newState));
             }
-            // 更新全屋标签页的统计
             if (currentTabPosition == 0 && allTabAdapter != null && getActivity() != null) {
                 getActivity().runOnUiThread(() -> updateAllTabStats());
             }
         });
-        livingLedMqttManager.connect();
 
-        // 摄像头MQTT管理器
-        livingCameraMqttManager = new MqttManager(
-                requireContext(),
-                "taclmu1x2gf4s5cx",
-                "odoscHX24A",
-                "camera_status"
-        );
-        livingCameraMqttManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
+        // 摄像头 - 使用单例管理器
+        livingCameraManager = mqttConnectionManager.getOrCreateManager(
+                "taclmu1x2gf4s5cx", "odoscHX24A", "camera_status");
+        livingCameraManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
             @Override
             public void onConnected() {
                 Log.d(TAG, "摄像头连接成功");
@@ -177,9 +166,7 @@ public class HomeFragment extends Fragment {
                 Log.e(TAG, "摄像头连接失败: " + error);
             }
         });
-        
-        // 摄像头状态监听器
-        livingCameraMqttManager.setOnStateChangeListener(newState -> {
+        livingCameraManager.setOnStateChangeListener(newState -> {
             Log.d(TAG, "摄像头状态变化: " + newState);
             if (livingCameraSwitch != null && getActivity() != null && newState != null) {
                 getActivity().runOnUiThread(() -> livingCameraSwitch.setChecked(newState));
@@ -188,16 +175,11 @@ public class HomeFragment extends Fragment {
                 getActivity().runOnUiThread(() -> updateAllTabStats());
             }
         });
-        livingCameraMqttManager.connect();
 
-        // 餐厅灯MQTT管理器
-        diningLedMqttManager = new MqttManager(
-                requireContext(),
-                "irp8ltd5thuronmp",
-                "odoscHX24A",
-                "state"
-        );
-        diningLedMqttManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
+        // 餐厅灯 - 使用单例管理器
+        diningLedManager = mqttConnectionManager.getOrCreateManager(
+                "irp8ltd5thuronmp", "odoscHX24A", "state");
+        diningLedManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
             @Override
             public void onConnected() {
                 Log.d(TAG, "餐厅灯连接成功");
@@ -211,9 +193,7 @@ public class HomeFragment extends Fragment {
                 Log.e(TAG, "餐厅灯连接失败: " + error);
             }
         });
-        
-        // 餐厅灯状态监听器
-        diningLedMqttManager.setOnStateChangeListener(newState -> {
+        diningLedManager.setOnStateChangeListener(newState -> {
             Log.d(TAG, "餐厅灯状态变化: " + newState);
             if (diningLedSwitch != null && getActivity() != null && newState != null) {
                 getActivity().runOnUiThread(() -> diningLedSwitch.setChecked(newState));
@@ -222,7 +202,6 @@ public class HomeFragment extends Fragment {
                 getActivity().runOnUiThread(() -> updateAllTabStats());
             }
         });
-        diningLedMqttManager.connect();
         
         // 本地设备状态变化监听器
         localDeviceManager.setOnDeviceStateChangeListener((deviceId, newState) -> {
@@ -337,67 +316,65 @@ public class HomeFragment extends Fragment {
 
     /**
      * 设置客厅标签页
-     * 
-     * 包含：灯光开关、摄像头开关
      */
     private void setupLivingTab(View root) {
         livingLedSwitch = root.findViewById(R.id.sw_toggle);
         livingCameraSwitch = root.findViewById(R.id.sw_toggle2);
         
-        // 客厅灯开关
-        if (livingLedSwitch != null) {
-            Boolean lastState = livingLedMqttManager.getLastState();
+        if (livingLedSwitch != null && livingLedManager != null) {
+            Boolean lastState = livingLedManager.getLastState();
             if (lastState != null) {
                 livingLedSwitch.setChecked(lastState);
             }
             livingLedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Log.d(TAG, "客厅灯开关手动切换: " + isChecked);
-                livingLedMqttManager.publish("state", isChecked);
+                if (livingLedManager != null) {
+                    livingLedManager.publish("state", isChecked);
+                }
                 if (currentTabPosition == 0) {
                     updateAllTabStats();
                 }
             });
         }
         
-        // 摄像头开关
-        if (livingCameraSwitch != null) {
-            Boolean lastCameraState = livingCameraMqttManager.getLastState();
+        if (livingCameraSwitch != null && livingCameraManager != null) {
+            Boolean lastCameraState = livingCameraManager.getLastState();
             if (lastCameraState != null) {
                 livingCameraSwitch.setChecked(lastCameraState);
             }
             livingCameraSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Log.d(TAG, "摄像头开关手动切换: " + isChecked);
-                livingCameraMqttManager.publish("camera_status", isChecked);
+                if (livingCameraManager != null) {
+                    livingCameraManager.publish("camera_status", isChecked);
+                }
             });
         }
     }
 
     /**
      * 设置餐厅标签页
-     * 
-     * 包含：灯光开关（MQTT）、冰箱开关（本地）、空调开关（本地）
      */
     private void setupDiningTab(View root) {
         diningLedSwitch = root.findViewById(R.id.sw_toggle);
         SwitchMaterial swFridge = root.findViewById(R.id.sw_toggle2);
         SwitchMaterial swAircon = root.findViewById(R.id.sw_toggle3);
         
-        // 餐厅灯开关
-        if (diningLedSwitch != null) {
-            Boolean lastState = diningLedMqttManager.getLastState();
+        if (diningLedSwitch != null && diningLedManager != null) {
+            Boolean lastState = diningLedManager.getLastState();
             if (lastState != null) {
                 diningLedSwitch.setChecked(lastState);
             }
             diningLedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 Log.d(TAG, "餐厅灯开关手动切换: " + isChecked);
-                diningLedMqttManager.publish("state", isChecked);
+                if (diningLedManager != null) {
+                    diningLedManager.publish("state", isChecked);
+                }
                 if (currentTabPosition == 0) {
                     updateAllTabStats();
                 }
             });
         }
         
-        // 冰箱开关
         if (swFridge != null) {
             swFridge.setChecked(localDeviceManager.getDeviceState("dining_fridge"));
             swFridge.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -405,7 +382,6 @@ public class HomeFragment extends Fragment {
             });
         }
         
-        // 空调开关
         if (swAircon != null) {
             swAircon.setChecked(localDeviceManager.getDeviceState("dining_aircon"));
             swAircon.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -416,8 +392,6 @@ public class HomeFragment extends Fragment {
 
     /**
      * 设置卧室标签页
-     * 
-     * 包含：除湿器、空调、窗帘、扫地机器人、投影仪、音响（均为本地设备）
      */
     private void setupBedroomTab(View root) {
         SwitchMaterial swDehumidifier = root.findViewById(R.id.sw_toggle);
@@ -472,21 +446,20 @@ public class HomeFragment extends Fragment {
 
     private int getLightOnCount() {
         int count = 0;
-        if (livingLedMqttManager != null && Boolean.TRUE.equals(livingLedMqttManager.getLastState())) {
+        if (livingLedManager != null && Boolean.TRUE.equals(livingLedManager.getLastState())) {
             count++;
         }
-        if (diningLedMqttManager != null && Boolean.TRUE.equals(diningLedMqttManager.getLastState())) {
+        if (diningLedManager != null && Boolean.TRUE.equals(diningLedManager.getLastState())) {
             count++;
         }
         return count;
     }
 
     private int getCameraOnCount() {
-        int count = 0;
-        if (livingCameraMqttManager != null && Boolean.TRUE.equals(livingCameraMqttManager.getLastState())) {
-            count++;
+        if (livingCameraManager != null && Boolean.TRUE.equals(livingCameraManager.getLastState())) {
+            return 1;
         }
-        return count;
+        return 0;
     }
 
     private int getAirconOnCount() {
@@ -501,43 +474,27 @@ public class HomeFragment extends Fragment {
     }
 
     private String formatLightSubtitle(int count) {
-        if (count <= 0) {
-            return "没有灯泡亮";
-        } else if (count == 1) {
-            return "一个灯泡亮";
-        } else {
-            return count + "个灯泡亮";
-        }
+        if (count <= 0) return "没有灯泡亮";
+        else if (count == 1) return "一个灯泡亮";
+        else return count + "个灯泡亮";
     }
 
     private String formatCameraSubtitle(int count) {
-        if (count <= 0) {
-            return "没有摄像头工作";
-        } else if (count == 1) {
-            return "一个正在工作";
-        } else {
-            return count + "个正在工作";
-        }
+        if (count <= 0) return "没有摄像头工作";
+        else if (count == 1) return "一个正在工作";
+        else return count + "个正在工作";
     }
 
     private String formatAirconSubtitle(int count) {
-        if (count <= 0) {
-            return "没有空调运行";
-        } else if (count == 1) {
-            return "一个空调运行";
-        } else {
-            return count + "个空调运行";
-        }
+        if (count <= 0) return "没有空调运行";
+        else if (count == 1) return "一个空调运行";
+        else return count + "个空调运行";
     }
 
     private String formatCurtainSubtitle(int count) {
-        if (count <= 0) {
-            return "没有窗帘打开";
-        } else if (count == 1) {
-            return "一个窗帘打开";
-        } else {
-            return count + "个窗帘打开";
-        }
+        if (count <= 0) return "没有窗帘打开";
+        else if (count == 1) return "一个窗帘打开";
+        else return count + "个窗帘打开";
     }
 
     private void initTablayout() {
@@ -575,7 +532,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // 恢复时更新全屋统计
         if (currentTabPosition == 0 && allTabAdapter != null) {
             updateAllTabStats();
         }
@@ -584,17 +540,11 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (livingLedMqttManager != null) {
-            livingLedMqttManager.disconnect();
+        // 释放MQTT连接引用（不立即断开，由单例管理）
+        if (mqttConnectionManager != null) {
+            mqttConnectionManager.releaseManager("ch1hpsnpie8hxwuj", "state");
+            mqttConnectionManager.releaseManager("taclmu1x2gf4s5cx", "camera_status");
+            mqttConnectionManager.releaseManager("irp8ltd5thuronmp", "state");
         }
-        if (livingCameraMqttManager != null) {
-            livingCameraMqttManager.disconnect();
-        }
-        if (diningLedMqttManager != null) {
-            diningLedMqttManager.disconnect();
-        }
-    }
-
-    public void logout(View v) {
     }
 }

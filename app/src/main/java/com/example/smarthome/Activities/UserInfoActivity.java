@@ -3,10 +3,13 @@ package com.example.smarthome.Activities;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListPopupWindow;
 import android.widget.TextView;
 
@@ -15,12 +18,23 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.example.smarthome.R;
 
+import java.io.File;
+
+/**
+ * 用户个人信息Activity
+ * 
+ * 功能说明：
+ * - 显示和编辑用户头像、昵称、性别
+ * - 头像点击跳转到HeadActivity进行更换
+ * - 昵称点击跳转到NameActivity进行修改
+ * - 性别通过弹出列表选择
+ * 
+ * 数据同步：
+ * - 在onResume中重新加载头像和昵称，确保数据同步
+ */
 public class UserInfoActivity extends AppCompatActivity implements View.OnClickListener {
     private Toolbar userinfo_back;
     private ConstraintLayout myinfo_head;
@@ -28,72 +42,106 @@ public class UserInfoActivity extends AppCompatActivity implements View.OnClickL
     private ConstraintLayout userinfo_name;
     private TextView tv_gender_value;
     private TextView user_name;
+    private ImageView iv_avatar;
+    
+    private SharedPreferences sharedPreferences;
+    private String currentAccount;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_user_info);
-        //实现左上角返回
+        
+        initSharedPreferences();
         initToolbar();
         initView();
+        loadGender();
 
         myinfo_head.setOnClickListener(this);
         gender_layout.setOnClickListener(this);
         userinfo_name.setOnClickListener(this);
-        //修改性别
-        loadGender();
+    }
+
+    /**
+     * 初始化SharedPreferences
+     */
+    private void initSharedPreferences() {
+        sharedPreferences = getSharedPreferences("userinfo", Context.MODE_PRIVATE);
+        currentAccount = sharedPreferences.getString("current_account", "default");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadUserName();//重新刷新用户的昵称
-
+        loadUserName();
+        loadAvatar();
     }
 
+    /**
+     * 加载用户昵称
+     */
     private void loadUserName() {
-        SharedPreferences sp = getSharedPreferences("userinfo", Context.MODE_PRIVATE);
-        String currentAccount = sp.getString("current_account", "");
         String nicknameKey = "name_" + currentAccount;
-
-        String name = sp.getString(nicknameKey, "");
+        String name = sharedPreferences.getString(nicknameKey, "");
         if (name.isEmpty()) {
             name = currentAccount;
         }
         user_name.setText(name);
     }
 
-    private void initView() {
-        myinfo_head=findViewById(R.id.myinfo_head);
-        gender_layout=findViewById(R.id.gender_layout);
-        tv_gender_value=findViewById(R.id.tv_gender_value);
-        userinfo_name=findViewById(R.id.userinfo_name);
-        user_name=findViewById(R.id.user_name);
-        //设置默认的昵称
-        SharedPreferences sp = getSharedPreferences("userinfo",MODE_PRIVATE);
-        SharedPreferences.Editor edit = sp.edit();
-        String currentAccount = sp.getString("current_account","");
-        //拼接然后取sp找，没有就默认
-        String name="name_"+currentAccount;
-        String string = sp.getString(name, "");
-        if(string.isEmpty()){
-            string=currentAccount;
+    /**
+     * 加载用户头像
+     * 
+     * 从SharedPreferences读取头像路径并显示
+     * 如果没有自定义头像，显示默认头像
+     */
+    private void loadAvatar() {
+        String avatarPath = sharedPreferences.getString("avatar_path_" + currentAccount, "");
+        if (!avatarPath.isEmpty()) {
+            File avatarFile = new File(avatarPath);
+            if (avatarFile.exists()) {
+                Bitmap bitmap = BitmapFactory.decodeFile(avatarPath);
+                if (bitmap != null) {
+                    iv_avatar.setImageBitmap(bitmap);
+                    return;
+                }
+            }
         }
-        user_name.setText(string);
+        // 没有自定义头像，显示默认头像
+        iv_avatar.setImageResource(R.drawable.headpicture);
     }
 
-    //实现左上角返回
+    private void initView() {
+        myinfo_head = findViewById(R.id.myinfo_head);
+        gender_layout = findViewById(R.id.gender_layout);
+        tv_gender_value = findViewById(R.id.tv_gender_value);
+        userinfo_name = findViewById(R.id.userinfo_name);
+        user_name = findViewById(R.id.user_name);
+        iv_avatar = findViewById(R.id.iv_avatar);
+        
+        // 设置默认昵称
+        String nicknameKey = "name_" + currentAccount;
+        String name = sharedPreferences.getString(nicknameKey, "");
+        if (name.isEmpty()) {
+            name = currentAccount;
+        }
+        user_name.setText(name);
+    }
+
+    /**
+     * 初始化工具栏
+     */
     private void initToolbar() {
         userinfo_back = findViewById(R.id.userinfo_back);
-        // 1. 将 Toolbar 设置为 Activity 的 ActionBar
         setSupportActionBar(userinfo_back);
-        // 2. 获取 ActionBar 并进行设置
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true); // 启用返回按钮
-            actionBar.setDisplayShowTitleEnabled(false); // 隐藏标题
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setDisplayShowTitleEnabled(false);
         }
     }
+
     @Override
     public boolean onSupportNavigateUp() {
         finish();
@@ -102,24 +150,25 @@ public class UserInfoActivity extends AppCompatActivity implements View.OnClickL
 
     @Override
     public void onClick(View v) {
-        //toux
-        if(v.getId()==R.id.myinfo_head){
-            Intent intent=new Intent(this, HeadActivity.class);
+        // 头像点击
+        if (v.getId() == R.id.myinfo_head) {
+            Intent intent = new Intent(this, HeadActivity.class);
             startActivity(intent);
         }
-        //点击的是性别
-        if(v.getId()==R.id.gender_layout){
-            //显示GenderDialog
+        // 性别点击
+        if (v.getId() == R.id.gender_layout) {
             showGenderDialog();
         }
-        //点击的是昵称
-        if(v.getId()==R.id.userinfo_name){
-            Intent intent=new Intent(this,NameActivity.class);
+        // 昵称点击
+        if (v.getId() == R.id.userinfo_name) {
+            Intent intent = new Intent(this, NameActivity.class);
             startActivity(intent);
         }
     }
-    //显示男女性别的AlertDialog
-    //性别弹出列表：在性别这一行下方弹出，点击立即生效
+
+    /**
+     * 显示性别选择弹窗
+     */
     private void showGenderDialog() {
         final String[] items = {"男", "女"};
         final ListPopupWindow popupWindow = new ListPopupWindow(this);
@@ -134,27 +183,22 @@ public class UserInfoActivity extends AppCompatActivity implements View.OnClickL
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String selectGender = items[position];
                 tv_gender_value.setText(selectGender);
-                //
-                SharedPreferences sp = getSharedPreferences("userinfo", MODE_PRIVATE);
-                String currentAccount = sp.getString("current_account", "");
                 String genderKey = "gender_" + currentAccount;
-                sp.edit().putString(genderKey, selectGender).apply();
+                sharedPreferences.edit().putString(genderKey, selectGender).apply();
                 popupWindow.dismiss();
             }
         });
         popupWindow.show();
     }
-    private void loadGender() {
-        SharedPreferences sp = getSharedPreferences("userinfo", MODE_PRIVATE);
-        String currentAccount = sp.getString("current_account", "");
-        String genderKey = "gender_" + currentAccount;
 
-        String gender = sp.getString(genderKey, "");
+    /**
+     * 加载性别
+     */
+    private void loadGender() {
+        String genderKey = "gender_" + currentAccount;
+        String gender = sharedPreferences.getString(genderKey, "");
         if (!gender.isEmpty()) {
             tv_gender_value.setText(gender);
-        } else {
-            // 可以什么都不设，或者显示“保密”
-            // tv_gender_value.setText("保密");
         }
     }
 }
