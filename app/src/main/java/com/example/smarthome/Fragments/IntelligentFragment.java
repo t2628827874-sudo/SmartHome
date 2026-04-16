@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,9 +20,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.smarthome.Model.WeatherModel;
 import com.example.smarthome.MQTT.MqttConnectionManager;
 import com.example.smarthome.MQTT.MqttManager;
 import com.example.smarthome.R;
+import com.example.smarthome.Service.WeatherService;
 import com.example.smarthome.Utils.LocalDeviceManager;
 import com.example.smarthome.Utils.ModeManager;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -33,24 +36,24 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
  * - 提供回家模式和离家模式的控制界面
  * - 回家模式：自动开启客厅灯光
  * - 离家模式：关闭所有电器，开启摄像头监控
+ * - 天气显示：显示沧州市实时天气信息
  * 
  * 架构设计：
  * - 使用ModeManager管理模式状态（支持持久化）
  * - 使用MqttConnectionManager单例控制IoT设备（避免重复连接）
  * - 使用LocalDeviceManager管理本地模拟设备
- * 
- * 流控优化：
- * - 使用MqttConnectionManager单例管理MQTT连接
- * - 确保每个设备只有一个连接，避免重复连接触发平台流控
+ * - 使用WeatherService获取天气数据
  */
 public class IntelligentFragment extends Fragment {
     
     private static final String TAG = "IntelligentFragment";
+    private static final String DEFAULT_CITY = "沧州";
     
     private TextView it_tv;
     private View cardCurrentMode;
     private View cardModeHome;
     private View cardModeAway;
+    private View cardWeather;
     
     private TextView tvCurrentTitle;
     private TextView tvCurrentSubtitle;
@@ -63,9 +66,23 @@ public class IntelligentFragment extends Fragment {
     private TextView tvAwayTitle;
     private TextView tvAwaySubtitle;
     
+    // 天气UI组件
+    private TextView tvWeatherCity;
+    private TextView tvWeatherUpdateTime;
+    private TextView tvWeatherTemp;
+    private TextView tvWeatherDesc;
+    private TextView tvWeatherTempHigh;
+    private TextView tvWeatherTempLow;
+    private TextView tvWeatherWind;
+    private TextView tvWeatherHumidity;
+    private TextView tvWeatherAir;
+    private ProgressBar progressWeather;
+    private TextView tvWeatherError;
+    
     private ModeManager modeManager;
     private LocalDeviceManager localDeviceManager;
     private MqttConnectionManager mqttConnectionManager;
+    private WeatherService weatherService;
     
     private MqttConnectionManager.MqttManagerWrapper livingLedManager;
     private MqttConnectionManager.MqttManagerWrapper diningLedManager;
@@ -90,6 +107,7 @@ public class IntelligentFragment extends Fragment {
             initCardViews(view);
             initSwitchListeners();
             updateCurrentModeDisplay();
+            fetchWeather();
         } catch (Exception e) {
             Log.e(TAG, "onViewCreated初始化失败: " + e.getMessage(), e);
             showToastSafe("初始化失败，请重试");
@@ -98,16 +116,14 @@ public class IntelligentFragment extends Fragment {
 
     /**
      * 初始化业务管理器
-     * 
-     * 使用MqttConnectionManager单例获取MQTT连接，确保每个设备只有一个连接
      */
     private void initManagers() {
         try {
             modeManager = ModeManager.getInstance(requireContext());
             localDeviceManager = LocalDeviceManager.getInstance(requireContext());
             mqttConnectionManager = MqttConnectionManager.getInstance(requireContext());
+            weatherService = WeatherService.getInstance();
             
-            // 客厅灯 - 使用单例管理器
             livingLedManager = mqttConnectionManager.getOrCreateManager(
                     "ch1hpsnpie8hxwuj", "odoscHX24A", "state");
             livingLedManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
@@ -125,7 +141,6 @@ public class IntelligentFragment extends Fragment {
                 }
             });
 
-            // 餐厅灯 - 使用单例管理器
             diningLedManager = mqttConnectionManager.getOrCreateManager(
                     "irp8ltd5thuronmp", "odoscHX24A", "state");
             diningLedManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
@@ -143,7 +158,6 @@ public class IntelligentFragment extends Fragment {
                 }
             });
 
-            // 摄像头 - 使用单例管理器
             cameraManager = mqttConnectionManager.getOrCreateManager(
                     "taclmu1x2gf4s5cx", "odoscHX24A", "camera_status");
             cameraManager.setOnConnectionListener(new MqttManager.OnConnectionListener() {
@@ -184,6 +198,7 @@ public class IntelligentFragment extends Fragment {
             cardCurrentMode = view.findViewById(R.id.card_current_mode);
             cardModeHome = view.findViewById(R.id.card_mode_home);
             cardModeAway = view.findViewById(R.id.card_mode_away);
+            cardWeather = view.findViewById(R.id.card_weather);
 
             if (cardCurrentMode != null) {
                 tvCurrentTitle = cardCurrentMode.findViewById(R.id.tv_title);
@@ -217,8 +232,192 @@ public class IntelligentFragment extends Fragment {
                     swAway.setChecked(modeManager.isAwayMode());
                 }
             }
+            
+            initWeatherCard();
         } catch (Exception e) {
             Log.e(TAG, "initCardViews失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 初始化天气卡片
+     */
+    private void initWeatherCard() {
+        if (cardWeather == null) return;
+        
+        tvWeatherCity = cardWeather.findViewById(R.id.tv_weather_city);
+        tvWeatherUpdateTime = cardWeather.findViewById(R.id.tv_weather_update_time);
+        tvWeatherTemp = cardWeather.findViewById(R.id.tv_weather_temp);
+        tvWeatherDesc = cardWeather.findViewById(R.id.tv_weather_desc);
+        tvWeatherTempHigh = cardWeather.findViewById(R.id.tv_weather_temp_high);
+        tvWeatherTempLow = cardWeather.findViewById(R.id.tv_weather_temp_low);
+        tvWeatherWind = cardWeather.findViewById(R.id.tv_weather_wind);
+        tvWeatherHumidity = cardWeather.findViewById(R.id.tv_weather_humidity);
+        tvWeatherAir = cardWeather.findViewById(R.id.tv_weather_air);
+        progressWeather = cardWeather.findViewById(R.id.progress_weather);
+        tvWeatherError = cardWeather.findViewById(R.id.tv_weather_error);
+        
+        // 点击错误提示可重试
+        if (tvWeatherError != null) {
+            tvWeatherError.setOnClickListener(v -> fetchWeather());
+        }
+    }
+    
+    /**
+     * 获取天气数据
+     */
+    private void fetchWeather() {
+        if (weatherService == null) return;
+        
+        showWeatherLoading(true);
+        
+        weatherService.getWeather(DEFAULT_CITY, new WeatherService.WeatherCallback() {
+            @Override
+            public void onSuccess(WeatherModel weather) {
+                if (isFragmentActive && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        showWeatherLoading(false);
+                        updateWeatherDisplay(weather);
+                    });
+                }
+            }
+            
+            @Override
+            public void onError(String errorMessage) {
+                if (isFragmentActive && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        showWeatherLoading(false);
+                        showWeatherError(errorMessage);
+                    });
+                }
+            }
+        });
+    }
+    
+    /**
+     * 显示天气加载状态
+     */
+    private void showWeatherLoading(boolean loading) {
+        if (progressWeather != null) {
+            progressWeather.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (tvWeatherError != null) {
+            tvWeatherError.setVisibility(View.GONE);
+        }
+    }
+    
+    /**
+     * 显示天气错误
+     */
+    private void showWeatherError(String message) {
+        if (tvWeatherError != null) {
+            tvWeatherError.setText("加载失败，点击重试");
+            tvWeatherError.setVisibility(View.VISIBLE);
+        }
+        Log.e(TAG, "天气加载失败: " + message);
+    }
+    
+    /**
+     * 更新天气显示
+     * 
+     * API返回扁平结构数据，直接从WeatherModel获取
+     */
+    private void updateWeatherDisplay(WeatherModel weather) {
+        if (weather == null || cardWeather == null) {
+            showWeatherError("天气数据为空");
+            return;
+        }
+        
+        try {
+            // 城市名称
+            if (tvWeatherCity != null) {
+                String cityName = weather.getCity();
+                if (cityName != null && !cityName.isEmpty()) {
+                    tvWeatherCity.setText(cityName + "天气");
+                } else {
+                    tvWeatherCity.setText(DEFAULT_CITY + "天气");
+                }
+            }
+            
+            // 更新时间
+            if (tvWeatherUpdateTime != null) {
+                String updateTime = weather.getUpdateTime();
+                if (updateTime != null && !updateTime.isEmpty()) {
+                    tvWeatherUpdateTime.setText(updateTime + " 更新");
+                } else {
+                    tvWeatherUpdateTime.setText("刚刚更新");
+                }
+            }
+            
+            // 温度 - 使用格式化方法确保数字格式
+            if (tvWeatherTemp != null) {
+                tvWeatherTemp.setText(weather.getFormattedTemperature());
+            }
+            
+            // 天气描述
+            if (tvWeatherDesc != null) {
+                String weatherDesc = weather.getWeather();
+                if (weatherDesc != null && !weatherDesc.isEmpty()) {
+                    tvWeatherDesc.setText(weatherDesc);
+                } else {
+                    tvWeatherDesc.setText("--");
+                }
+            }
+            
+            // 最高温度
+            if (tvWeatherTempHigh != null) {
+                tvWeatherTempHigh.setText(weather.getFormattedTemperatureDay());
+            }
+            
+            // 最低温度
+            if (tvWeatherTempLow != null) {
+                tvWeatherTempLow.setText(weather.getFormattedTemperatureNight());
+            }
+            
+            // 风力
+            if (tvWeatherWind != null) {
+                String wind = weather.getWind();
+                String windSpeed = weather.getWindSpeed();
+                StringBuilder windText = new StringBuilder();
+                if (wind != null && !wind.isEmpty()) {
+                    windText.append(wind);
+                }
+                if (windSpeed != null && !windSpeed.isEmpty()) {
+                    if (windText.length() > 0) {
+                        windText.append(" ");
+                    }
+                    windText.append(windSpeed);
+                }
+                if (windText.length() > 0) {
+                    tvWeatherWind.setText(windText.toString());
+                } else {
+                    tvWeatherWind.setText("--");
+                }
+            }
+            
+            // 湿度 - 使用格式化方法
+            if (tvWeatherHumidity != null) {
+                tvWeatherHumidity.setText(weather.getFormattedHumidity());
+            }
+            
+            // 空气质量
+            if (tvWeatherAir != null) {
+                String air = weather.getAir();
+                String airLevel = weather.getAirQualityLevel();
+                if (air != null && !air.isEmpty()) {
+                    tvWeatherAir.setText(airLevel + " " + air);
+                    tvWeatherAir.setTextColor(weather.getAirQualityColor());
+                } else {
+                    tvWeatherAir.setText("--");
+                    tvWeatherAir.setTextColor(0xFF666666);
+                }
+            }
+            
+            Log.d(TAG, "天气数据更新成功: " + weather.getCity() + " " + weather.getFormattedTemperature() + " " + weather.getWeather());
+            
+        } catch (Exception e) {
+            Log.e(TAG, "更新天气显示失败: " + e.getMessage(), e);
+            showWeatherError("显示更新失败");
         }
     }
 
@@ -276,9 +475,6 @@ public class IntelligentFragment extends Fragment {
         }
     }
 
-    /**
-     * 激活回家模式
-     */
     private void activateHomeMode() {
         if (isProcessingMode || !isFragmentActive) {
             Log.w(TAG, "正在处理模式切换或Fragment不活跃，请稍候");
@@ -299,7 +495,6 @@ public class IntelligentFragment extends Fragment {
             if (swAway != null) swAway.setChecked(false);
             isUpdatingSwitches = false;
             
-            // 发送设备控制命令 - 开启客厅灯
             if (livingLedManager != null) {
                 livingLedManager.publish("state", true);
                 Log.d(TAG, "客厅灯指令发送: state=true");
@@ -320,9 +515,6 @@ public class IntelligentFragment extends Fragment {
         }
     }
 
-    /**
-     * 激活离家模式
-     */
     private void activateAwayMode() {
         if (isProcessingMode || !isFragmentActive) {
             Log.w(TAG, "正在处理模式切换或Fragment不活跃，请稍候");
@@ -343,7 +535,6 @@ public class IntelligentFragment extends Fragment {
             if (swAway != null) swAway.setChecked(true);
             isUpdatingSwitches = false;
             
-            // 发送MQTT设备控制命令
             if (livingLedManager != null) {
                 livingLedManager.publish("state", false);
                 Log.d(TAG, "客厅灯指令发送: state=false");
@@ -357,7 +548,6 @@ public class IntelligentFragment extends Fragment {
                 Log.d(TAG, "摄像头指令发送: camera_status=true");
             }
             
-            // 关闭所有本地设备
             closeAllLocalDevices();
             
             showToast("离家模式已激活");
@@ -375,9 +565,6 @@ public class IntelligentFragment extends Fragment {
         }
     }
 
-    /**
-     * 关闭所有本地设备
-     */
     private void closeAllLocalDevices() {
         if (localDeviceManager == null) {
             Log.w(TAG, "LocalDeviceManager为空，跳过本地设备关闭");
@@ -399,9 +586,6 @@ public class IntelligentFragment extends Fragment {
         }
     }
 
-    /**
-     * 取消当前模式
-     */
     private void deactivateCurrentMode() {
         if (modeManager == null) return;
         
@@ -420,9 +604,6 @@ public class IntelligentFragment extends Fragment {
         }
     }
 
-    /**
-     * 重置开关状态到当前模式
-     */
     private void resetSwitchStates() {
         if (!isFragmentActive || modeManager == null) return;
         
@@ -436,9 +617,6 @@ public class IntelligentFragment extends Fragment {
         }
     }
 
-    /**
-     * 更新当前模式显示
-     */
     private void updateCurrentModeDisplay() {
         if (tvCurrentSubtitle == null || modeManager == null) return;
         
@@ -497,6 +675,10 @@ public class IntelligentFragment extends Fragment {
         super.onResume();
         isFragmentActive = true;
         updateCurrentModeDisplay();
+        // 刷新天气数据
+        if (weatherService != null) {
+            fetchWeather();
+        }
     }
 
     @Override
@@ -510,7 +692,6 @@ public class IntelligentFragment extends Fragment {
         super.onDestroyView();
         isFragmentActive = false;
         
-        // 释放MQTT连接引用（不立即断开，由单例管理）
         if (mqttConnectionManager != null) {
             mqttConnectionManager.releaseManager("ch1hpsnpie8hxwuj", "state");
             mqttConnectionManager.releaseManager("irp8ltd5thuronmp", "state");

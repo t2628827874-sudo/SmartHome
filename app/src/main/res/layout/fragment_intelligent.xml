@@ -60,6 +60,14 @@
                 android:layout_marginStart="6dp" />
         </LinearLayout>
 
+        <!-- 天气卡片 -->
+        <include
+            android:id="@+id/card_weather"
+            layout="@layout/item_weather_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" />
+
     </LinearLayout>
 
 
