@@ -256,11 +256,6 @@ public class IntelligentFragment extends Fragment {
         tvWeatherAir = cardWeather.findViewById(R.id.tv_weather_air);
         progressWeather = cardWeather.findViewById(R.id.progress_weather);
         tvWeatherError = cardWeather.findViewById(R.id.tv_weather_error);
-        
-        // 点击错误提示可重试
-        if (tvWeatherError != null) {
-            tvWeatherError.setOnClickListener(v -> fetchWeather());
-        }
     }
     
     /**
@@ -287,7 +282,7 @@ public class IntelligentFragment extends Fragment {
                 if (isFragmentActive && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         showWeatherLoading(false);
-                        showWeatherError(errorMessage);
+                        Log.e(TAG, "天气加载失败: " + errorMessage);
                     });
                 }
             }
@@ -307,13 +302,9 @@ public class IntelligentFragment extends Fragment {
     }
     
     /**
-     * 显示天气错误
+     * 显示天气错误（仅记录日志，不显示UI提示）
      */
     private void showWeatherError(String message) {
-        if (tvWeatherError != null) {
-            tvWeatherError.setText("加载失败，点击重试");
-            tvWeatherError.setVisibility(View.VISIBLE);
-        }
         Log.e(TAG, "天气加载失败: " + message);
     }
     
@@ -324,7 +315,7 @@ public class IntelligentFragment extends Fragment {
      */
     private void updateWeatherDisplay(WeatherModel weather) {
         if (weather == null || cardWeather == null) {
-            showWeatherError("天气数据为空");
+            Log.e(TAG, "天气数据为空");
             return;
         }
         
@@ -417,7 +408,6 @@ public class IntelligentFragment extends Fragment {
             
         } catch (Exception e) {
             Log.e(TAG, "更新天气显示失败: " + e.getMessage(), e);
-            showWeatherError("显示更新失败");
         }
     }
 
