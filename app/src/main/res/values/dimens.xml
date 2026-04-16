@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="device_card_radius">12dp</dimen>
-
+    <dimen name="card_radius">16dp</dimen>
+    <dimen name="card_elevation">4dp</dimen>
+    <dimen name="card_margin">12dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    
+    <dimen name="device_card_radius">16dp</dimen>
+    
+    <dimen name="header_radius">24dp</dimen>
+    
+    <dimen name="text_size_title">24sp</dimen>
+    <dimen name="text_size_subtitle">16sp</dimen>
+    <dimen name="text_size_body">14sp</dimen>
+    <dimen name="text_size_caption">12sp</dimen>
+    
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    
+    <dimen name="icon_size_sm">24dp</dimen>
+    <dimen name="icon_size_md">32dp</dimen>
+    <dimen name="icon_size_lg">48dp</dimen>
 </resources>

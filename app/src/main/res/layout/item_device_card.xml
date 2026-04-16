@@ -1,32 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:background="@drawable/bg_device_card"
-    android:layout_margin="8dp"
-    >
+    android:layout_margin="@dimen/card_margin"
+    app:cardBackgroundColor="@color/card_background"
+    app:cardCornerRadius="@dimen/card_radius"
+    app:cardElevation="@dimen/card_elevation"
+    app:cardPreventCornerOverlap="true">
 
-    <ImageView
-        android:id="@+id/iv_icon"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:src="@drawable/light" />
-    <TextView
-        android:id="@+id/tv_title"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="标题"
-        android:textSize="25sp"/>
-    <TextView
-        android:id="@+id/tv_subtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="副标题"
-        android:textSize="18sp"
-        android:layout_marginTop="4dp"/>
+        android:orientation="vertical"
+        android:padding="@dimen/card_padding">
 
+        <ImageView
+            android:id="@+id/iv_icon"
+            android:layout_width="@dimen/icon_size_lg"
+            android:layout_height="@dimen/icon_size_lg"
+            android:src="@drawable/light" />
 
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="标题"
+            android:textAppearance="@style/CardTitleText" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/tv_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:text="副标题"
+            android:textAppearance="@style/CardCaptionText" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

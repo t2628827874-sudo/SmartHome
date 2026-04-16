@@ -2,5 +2,29 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <color name="primary">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="accent">#FF9800</color>
+    
+    <color name="primary_gradient_start">#2196F3</color>
+    <color name="primary_gradient_end">#1976D2</color>
+    
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#9E9E9E</color>
+    <color name="text_light">#FFFFFF</color>
+    
+    <color name="background">#F5F7FA</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_border">#E0E0E0</color>
+    
     <color name="device_card_bg">#F0FFF5</color>
+    
+    <color name="divider">#EEEEEE</color>
+    <color name="ripple">#1F000000</color>
+    
+    <color name="status_on">#4CAF50</color>
+    <color name="status_off">#9E9E9E</color>
 </resources>

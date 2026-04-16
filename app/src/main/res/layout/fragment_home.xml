@@ -4,49 +4,82 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Fragments.HomeFragment"
-    >
+    android:background="@color/background"
+    tools:context=".Fragments.HomeFragment">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
         android:fitsSystemWindows="true"
-        >
+        app:elevation="0dp">
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_home_header"
             android:fitsSystemWindows="true"
-            app:layout_scrollFlags="scroll|enterAlways"
-            android:layout_marginBottom="22dp">
+            android:paddingBottom="@dimen/spacing_lg"
+            app:layout_scrollFlags="scroll|enterAlways">
 
             <ImageButton
                 android:id="@+id/home_btn_img"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:layout_marginEnd="@dimen/spacing_md"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="@dimen/spacing_sm"
                 android:src="@drawable/home_add"
+                android:tint="@color/text_light"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                />
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/home_username"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:layout_marginEnd="@dimen/spacing_md"
                 android:text="谁的家"
-                android:textSize="30sp"
+                android:textColor="@color/text_light"
+                android:textSize="@dimen/text_size_title"
+                android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/home_btn_img" />
+
+            <TextView
+                android:id="@+id/tv_welcome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="欢迎回家"
+                android:textColor="@color/text_light"
+                android:textSize="@dimen/text_size_body"
+                android:alpha="0.8"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/home_username" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/home_tablayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:tabMode="scrollable"
-            app:tabIndicatorColor="@android:color/white"
-            app:tabTextColor="@color/black"
-            app:tabSelectedTextColor="@android:color/background_dark"/>
-
+            android:layout_marginStart="@dimen/spacing_md"
+            android:layout_marginEnd="@dimen/spacing_md"
+            android:background="@drawable/bg_card"
+            app:tabGravity="fill"
+            app:tabIndicatorColor="@color/primary"
+            app:tabIndicatorHeight="3dp"
+            app:tabMode="fixed"
+            app:tabRippleColor="@color/ripple"
+            app:tabSelectedTextColor="@color/primary"
+            app:tabTextAppearance="@style/TabTextAppearance"
+            app:tabTextColor="@color/text_secondary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -54,6 +87,6 @@
         android:id="@+id/home_scroll_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
