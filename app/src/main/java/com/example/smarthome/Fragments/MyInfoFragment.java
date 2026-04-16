@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,57 +26,116 @@ import android.widget.Toast;
 
 import com.example.smarthome.Activities.UserInfoActivity;
 import com.example.smarthome.Adapter.BannerPagerAdpater;
+import com.example.smarthome.Adapter.BannerTransformer;
 import com.example.smarthome.MainActivity;
 import com.example.smarthome.R;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/**
- * 我的信息Fragment
- * 
- * 功能说明：
- * - 显示用户昵称和头像
- * - 轮播图展示
- * - 退出登录功能
- * 
- * 数据同步：
- * - 在onResume中重新加载头像和昵称，确保数据同步
- */
 public class MyInfoFragment extends Fragment implements View.OnClickListener {
     private static final String TAG = "MyInfoFragment";
+    private static final long BANNER_INTERVAL_MS = 3000;
     
     private Button btn_logout;
     private TextView myinfo_tv1;
     private ConstraintLayout myinfo_head;
     private ViewPager myinfo_vp;
     private BannerPagerAdpater bannerPagerAdpater;
-    private List<ImageView> imageViewList;
+    private int[] bannerResIds = {R.drawable.banner1, R.drawable.banner2, R.drawable.banner3, R.drawable.banner4, R.drawable.banner5};
     private LinearLayout banner_dots;
     private List<ImageView> dotList = new ArrayList<>();
-    private int currentIndex = 0;
+    private int currentDotIndex = 0;
     
     private ImageView iv_avatar;
     private SharedPreferences sharedPreferences;
     private String currentAccount;
+    
+    private Handler bannerHandler;
+    private boolean isAutoScrollEnabled = true;
+    private boolean isUserTouching = false;
+    private int currentPosition = 0;
+    
+    private ExecutorService executorService;
+    private Handler uiHandler;
+    private volatile boolean isAvatarLoaded = false;
+    
+    private boolean isViewCreated = false;
+    private boolean isFirstVisible = true;
+    
+    private final Runnable bannerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isAutoScrollEnabled && !isUserTouching && bannerPagerAdpater != null && myinfo_vp != null) {
+                currentPosition++;
+                myinfo_vp.setCurrentItem(currentPosition, true);
+            }
+            if (bannerHandler != null) {
+                bannerHandler.postDelayed(this, BANNER_INTERVAL_MS);
+            }
+        }
+    };
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        initSharedPreferences();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        bannerHandler = new Handler(Looper.getMainLooper());
+        uiHandler = new Handler(Looper.getMainLooper());
+        executorService = Executors.newSingleThreadExecutor();
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_my_info, container, false);
+    }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
-        initSharedPreferences();
         initView(view);
-        
         btn_logout.setOnClickListener(this);
         myinfo_head.setOnClickListener(this);
         
-        startBannerScroll();
+        isViewCreated = true;
+        
+        if (isFirstVisible && isResumed()) {
+            onFragmentFirstVisible();
+        }
     }
 
-    /**
-     * 初始化SharedPreferences
-     */
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (isViewCreated) {
+            if (isFirstVisible) {
+                onFragmentFirstVisible();
+            } else {
+                loadUserName();
+                loadAvatarAsync();
+                startAutoScroll();
+            }
+        }
+    }
+
+    private void onFragmentFirstVisible() {
+        isFirstVisible = false;
+        startBannerScroll();
+        loadUserName();
+        loadAvatarAsync();
+        startAutoScroll();
+    }
+
     private void initSharedPreferences() {
         if (getActivity() != null) {
             sharedPreferences = getActivity().getSharedPreferences("userinfo", Context.MODE_PRIVATE);
@@ -82,35 +143,82 @@ public class MyInfoFragment extends Fragment implements View.OnClickListener {
         }
     }
 
-    /**
-     * 启动轮播图
-     */
     private void startBannerScroll() {
-        initimgData();
-        bannerPagerAdpater = new BannerPagerAdpater(imageViewList);
+        if (getActivity() == null || myinfo_vp == null) return;
+        
+        bannerPagerAdpater = new BannerPagerAdpater(getActivity(), bannerResIds);
         myinfo_vp.setAdapter(bannerPagerAdpater);
+        myinfo_vp.setPageTransformer(true, new BannerTransformer());
+        myinfo_vp.setOffscreenPageLimit(1);
+        
+        int startPosition = Integer.MAX_VALUE / 2;
+        startPosition -= startPosition % bannerResIds.length;
+        currentPosition = startPosition;
+        myinfo_vp.setCurrentItem(currentPosition, false);
+        
         initDots();
+        
         myinfo_vp.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
+                currentPosition = position;
                 updateDots(position);
             }
-            @Override public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {}
-            @Override public void onPageScrollStateChanged(int state) {}
+            
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
+            
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                switch (state) {
+                    case ViewPager.SCROLL_STATE_DRAGGING:
+                        isUserTouching = true;
+                        break;
+                    case ViewPager.SCROLL_STATE_IDLE:
+                        isUserTouching = false;
+                        break;
+                }
+            }
+        });
+        
+        myinfo_vp.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                case android.view.MotionEvent.ACTION_MOVE:
+                    isUserTouching = true;
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    isUserTouching = false;
+                    break;
+            }
+            return false;
         });
     }
 
-    /**
-     * 初始化小圆点
-     */
+    private void startAutoScroll() {
+        isAutoScrollEnabled = true;
+        if (bannerHandler != null) {
+            bannerHandler.removeCallbacks(bannerRunnable);
+            bannerHandler.postDelayed(bannerRunnable, BANNER_INTERVAL_MS);
+        }
+    }
+
+    private void stopAutoScroll() {
+        isAutoScrollEnabled = false;
+        if (bannerHandler != null) {
+            bannerHandler.removeCallbacks(bannerRunnable);
+        }
+    }
+
     private void initDots() {
-        if (getActivity() == null) return;
+        if (getActivity() == null || banner_dots == null) return;
         
         dotList.clear();
         banner_dots.removeAllViews();
 
-        int count = imageViewList.size();
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < bannerResIds.length; i++) {
             ImageView dot = new ImageView(getActivity());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -122,98 +230,134 @@ public class MyInfoFragment extends Fragment implements View.OnClickListener {
             banner_dots.addView(dot);
             dotList.add(dot);
         }
-        currentIndex = 0;
+        currentDotIndex = 0;
     }
 
-    /**
-     * 更新小圆点状态
-     */
     private void updateDots(int position) {
-        if (position == currentIndex) return;
-        dotList.get(currentIndex).setImageResource(R.drawable.dots_normal);
-        dotList.get(position).setImageResource(R.drawable.dots_selected);
-        currentIndex = position;
-    }
-
-    /**
-     * 初始化轮播图片数据
-     */
-    private void initimgData() {
-        if (getActivity() == null) return;
+        int realPosition = position % bannerResIds.length;
+        if (realPosition == currentDotIndex) return;
         
-        imageViewList = new ArrayList<>();
-        
-        ImageView imageView = new ImageView(getActivity());
-        imageView.setImageResource(R.drawable.banner1);
-        imageViewList.add(imageView);
-
-        ImageView imageView2 = new ImageView(getActivity());
-        imageView2.setImageResource(R.drawable.banner2);
-        imageViewList.add(imageView2);
-
-        ImageView imageView3 = new ImageView(getActivity());
-        imageView3.setImageResource(R.drawable.banner3);
-        imageViewList.add(imageView3);
-
-        ImageView imageView4 = new ImageView(getActivity());
-        imageView4.setImageResource(R.drawable.banner4);
-        imageViewList.add(imageView4);
-
-        ImageView imageView5 = new ImageView(getActivity());
-        imageView5.setImageResource(R.drawable.banner5);
-        imageViewList.add(imageView5);
+        if (currentDotIndex >= 0 && currentDotIndex < dotList.size()) {
+            dotList.get(currentDotIndex).setImageResource(R.drawable.dots_normal);
+        }
+        if (realPosition >= 0 && realPosition < dotList.size()) {
+            dotList.get(realPosition).setImageResource(R.drawable.dots_selected);
+        }
+        currentDotIndex = realPosition;
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        loadUserName();
-        loadAvatar();
+    public void onPause() {
+        super.onPause();
+        stopAutoScroll();
     }
 
-    /**
-     * 加载用户昵称
-     */
+    @Override
+    public void onDestroyView() {
+        stopAutoScroll();
+        super.onDestroyView();
+        isViewCreated = false;
+        isFirstVisible = true;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (executorService != null) {
+            executorService.shutdownNow();
+            executorService = null;
+        }
+        if (uiHandler != null) {
+            uiHandler.removeCallbacksAndMessages(null);
+            uiHandler = null;
+        }
+        if (bannerHandler != null) {
+            bannerHandler.removeCallbacksAndMessages(null);
+            bannerHandler = null;
+        }
+    }
+
     private void loadUserName() {
-        if (getActivity() == null || sharedPreferences == null) return;
+        if (getActivity() == null || sharedPreferences == null || myinfo_tv1 == null) return;
         
         String nicknameKey = "name_" + currentAccount;
         String name = sharedPreferences.getString(nicknameKey, "");
         if (name.isEmpty()) {
             name = currentAccount;
         }
-        if (myinfo_tv1 != null) {
-            myinfo_tv1.setText(name);
-        }
+        myinfo_tv1.setText(name);
     }
 
-    /**
-     * 加载用户头像
-     * 
-     * 从SharedPreferences读取头像路径并显示
-     * 如果没有自定义头像，显示默认头像
-     */
-    private void loadAvatar() {
-        if (getActivity() == null || sharedPreferences == null || iv_avatar == null) return;
+    private void loadAvatarAsync() {
+        if (getActivity() == null || sharedPreferences == null || iv_avatar == null || executorService == null || isAvatarLoaded) {
+            return;
+        }
         
-        String avatarPath = sharedPreferences.getString("avatar_path_" + currentAccount, "");
-        if (!avatarPath.isEmpty()) {
-            File avatarFile = new File(avatarPath);
-            if (avatarFile.exists()) {
-                Bitmap bitmap = BitmapFactory.decodeFile(avatarPath);
-                if (bitmap != null) {
-                    iv_avatar.setImageBitmap(bitmap);
-                    return;
-                }
+        final String avatarPath = sharedPreferences.getString("avatar_path_" + currentAccount, "");
+        final ImageView avatarView = iv_avatar;
+        
+        executorService.execute(() -> {
+            if (avatarPath.isEmpty()) {
+                uiHandler.post(() -> {
+                    if (isAdded() && avatarView != null) {
+                        avatarView.setImageResource(R.drawable.headpicture);
+                        isAvatarLoaded = true;
+                    }
+                });
+                return;
             }
-        }
-        // 没有自定义头像，显示默认头像
-        iv_avatar.setImageResource(R.drawable.headpicture);
+            
+            File avatarFile = new File(avatarPath);
+            if (!avatarFile.exists()) {
+                uiHandler.post(() -> {
+                    if (isAdded() && avatarView != null) {
+                        avatarView.setImageResource(R.drawable.headpicture);
+                        isAvatarLoaded = true;
+                    }
+                });
+                return;
+            }
+            
+            try {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(avatarPath, options);
+                
+                int targetWidth = 160;
+                int targetHeight = 160;
+                int scaleFactor = Math.min(
+                        options.outWidth / targetWidth,
+                        options.outHeight / targetHeight
+                );
+                scaleFactor = Math.max(1, scaleFactor);
+                
+                options.inJustDecodeBounds = false;
+                options.inSampleSize = scaleFactor;
+                options.inPreferredConfig = Bitmap.Config.RGB_565;
+                
+                final Bitmap bitmap = BitmapFactory.decodeFile(avatarPath, options);
+                
+                uiHandler.post(() -> {
+                    if (isAdded() && avatarView != null) {
+                        if (bitmap != null && !bitmap.isRecycled()) {
+                            avatarView.setImageBitmap(bitmap);
+                        } else {
+                            avatarView.setImageResource(R.drawable.headpicture);
+                        }
+                        isAvatarLoaded = true;
+                    }
+                });
+            } catch (Exception e) {
+                uiHandler.post(() -> {
+                    if (isAdded() && avatarView != null) {
+                        avatarView.setImageResource(R.drawable.headpicture);
+                        isAvatarLoaded = true;
+                    }
+                });
+            }
+        });
     }
 
-    /**
-     * 初始化视图组件
-     */
     private void initView(View view) {
         btn_logout = view.findViewById(R.id.btn_logout);
         myinfo_tv1 = view.findViewById(R.id.myinfo_tv1);
@@ -221,19 +365,6 @@ public class MyInfoFragment extends Fragment implements View.OnClickListener {
         myinfo_vp = view.findViewById(R.id.myinfo_vp);
         banner_dots = view.findViewById(R.id.banner_dots);
         iv_avatar = view.findViewById(R.id.iv_avatar);
-        
-        // 设置默认昵称
-        if (getActivity() != null && sharedPreferences != null) {
-            String nicknameKey = "name_" + currentAccount;
-            String name = sharedPreferences.getString(nicknameKey, "");
-            if (name.isEmpty()) {
-                name = currentAccount;
-            }
-            myinfo_tv1.setText(name);
-        }
-        
-        // 加载头像
-        loadAvatar();
     }
 
     @Override
@@ -254,11 +385,5 @@ public class MyInfoFragment extends Fragment implements View.OnClickListener {
             Intent intent = new Intent(getActivity(), UserInfoActivity.class);
             startActivity(intent);
         }
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_my_info, container, false);
     }
 }

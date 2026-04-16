@@ -32,6 +32,11 @@ public class HomeActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
 
     private ActivityResultLauncher<String> notificationPermissionLauncher;
+    
+    private Fragment homeFragment;
+    private Fragment intelligentFragment;
+    private Fragment myInfoFragment;
+    private Fragment currentFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,25 +47,49 @@ public class HomeActivity extends AppCompatActivity {
         initPermissionLauncher();
         requestNotificationPermission();
 
-        fragment_container=findViewById(R.id.fragment_container);
-        bottomNavigationView=findViewById(R.id.bottomNavigationView);
-        replaceFragment(new HomeFragment());
+        fragment_container = findViewById(R.id.fragment_container);
+        bottomNavigationView = findViewById(R.id.bottomNavigationView);
+        
+        homeFragment = new HomeFragment();
+        intelligentFragment = new IntelligentFragment();
+        myInfoFragment = new MyInfoFragment();
+        
+        currentFragment = homeFragment;
+        getSupportFragmentManager()
+                .beginTransaction()
+                .add(R.id.fragment_container, homeFragment, "home")
+                .add(R.id.fragment_container, intelligentFragment, "intelligent")
+                .hide(intelligentFragment)
+                .add(R.id.fragment_container, myInfoFragment, "my")
+                .hide(myInfoFragment)
+                .commit();
+        
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
-                int id=menuItem.getItemId();
-                if (id==R.id.Home){
-                    replaceFragment(new HomeFragment());
-                }else if(id==R.id.intelligent){
-                    replaceFragment(new IntelligentFragment());
-                }else if(id==R.id.My){
-                    replaceFragment(new MyInfoFragment());
+                int id = menuItem.getItemId();
+                if (id == R.id.Home) {
+                    switchFragment(homeFragment);
+                } else if (id == R.id.intelligent) {
+                    switchFragment(intelligentFragment);
+                } else if (id == R.id.My) {
+                    switchFragment(myInfoFragment);
                 }
                 return true;
             }
         });
+    }
 
-
+    private void switchFragment(Fragment targetFragment) {
+        if (currentFragment == targetFragment) {
+            return;
+        }
+        
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.hide(currentFragment);
+        transaction.show(targetFragment);
+        transaction.commitAllowingStateLoss();
+        currentFragment = targetFragment;
     }
 
     private void initPermissionLauncher() {
@@ -88,13 +117,4 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
     }
-
-    public void replaceFragment(Fragment fragment){
-        FragmentManager fragmentManager=getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.fragment_container,fragment);
-        fragmentTransaction.commit();
-
-    }
-
 }
