@@ -13,6 +13,7 @@
         android:padding="@dimen/spacing_sm">
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/card_dehumidifier"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/card_margin"
@@ -55,6 +56,18 @@
                     android:textAppearance="@style/CardCaptionText"
                     app:layout_constraintStart_toEndOf="@+id/iv_icon"
                     app:layout_constraintTop_toBottomOf="@+id/tv_subtitle" />
+
+                <ImageButton
+                    android:id="@+id/btn_timer_dehumidifier"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_timer"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="定时设置"
+                    android:tint="@color/text_hint"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/sw_toggle"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_toggle"
@@ -226,6 +239,18 @@
                     android:textAppearance="@style/CardCaptionText"
                     app:layout_constraintStart_toEndOf="@+id/iv_icon5"
                     app:layout_constraintTop_toBottomOf="@+id/tv_subtitle5" />
+
+                <ImageButton
+                    android:id="@+id/btn_timer_robot"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_timer"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="定时设置"
+                    android:tint="@color/text_hint"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/sw_toggle5"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_toggle5"

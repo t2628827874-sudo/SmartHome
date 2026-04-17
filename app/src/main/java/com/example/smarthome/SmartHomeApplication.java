@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.example.smarthome.Service.HomeStatusService;
+import com.example.smarthome.Service.TimerTaskManager;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,6 +23,10 @@ public class SmartHomeApplication extends Application {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Application onCreate");
+        
+        TimerTaskManager timerTaskManager = TimerTaskManager.getInstance(this);
+        timerTaskManager.cleanupExpiredTasks();
+        timerTaskManager.rescheduleAllTasks();
 
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override

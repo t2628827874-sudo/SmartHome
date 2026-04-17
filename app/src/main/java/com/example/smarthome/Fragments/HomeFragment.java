@@ -24,9 +24,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.smarthome.Adapter.RecyclerViewAdapter;
+import com.example.smarthome.Dialog.TimerTaskDialog;
+import com.example.smarthome.Dialog.TimerTaskListDialog;
 import com.example.smarthome.MQTT.MqttConnectionManager;
 import com.example.smarthome.MQTT.MqttManager;
 import com.example.smarthome.Model.DeviceCardModel;
+import com.example.smarthome.Model.DeviceTimerTask;
 import com.example.smarthome.R;
 import com.example.smarthome.Utils.LocalDeviceManager;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -401,6 +404,21 @@ public class HomeFragment extends Fragment {
         SwitchMaterial swProjector = root.findViewById(R.id.sw_toggle6);
         SwitchMaterial swSpeaker = root.findViewById(R.id.sw_toggle7);
         
+        ImageButton btnTimerDehumidifier = root.findViewById(R.id.btn_timer_dehumidifier);
+        ImageButton btnTimerRobot = root.findViewById(R.id.btn_timer_robot);
+        
+        if (btnTimerDehumidifier != null) {
+            btnTimerDehumidifier.setOnClickListener(v -> {
+                showTimerDialog(DeviceTimerTask.DEVICE_DEHUMIDIFIER, "除湿器");
+            });
+        }
+        
+        if (btnTimerRobot != null) {
+            btnTimerRobot.setOnClickListener(v -> {
+                showTimerDialog(DeviceTimerTask.DEVICE_ROBOT, "扫地机器人");
+            });
+        }
+        
         if (swDehumidifier != null) {
             swDehumidifier.setChecked(localDeviceManager.getDeviceState("bedroom_dehumidifier"));
             swDehumidifier.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -442,6 +460,11 @@ public class HomeFragment extends Fragment {
                 localDeviceManager.setDeviceState("bedroom_speaker", isChecked);
             });
         }
+    }
+    
+    private void showTimerDialog(String deviceType, String deviceName) {
+        TimerTaskListDialog dialog = new TimerTaskListDialog(requireContext());
+        dialog.show();
     }
 
     private int getLightOnCount() {
