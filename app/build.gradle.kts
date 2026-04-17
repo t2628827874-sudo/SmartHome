@@ -43,10 +43,9 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation("com.google.android.flexbox:flexbox:3.0.0")
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
-    // Paho MQTT 客户端
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
     implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
-    // OkHttp 网络请求库（用于天气API）
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.example.smarthome.Service.EnergyManager;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,6 +13,10 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 本地设备管理器
+ * 管理本地模拟设备的状态，并与能耗统计系统集成
+ */
 public class LocalDeviceManager {
     private static final String TAG = "LocalDeviceManager";
     private static final String PREF_NAME = "local_device_states";
@@ -18,6 +24,7 @@ public class LocalDeviceManager {
     private SharedPreferences preferences;
     private Map<String, DeviceState> deviceStates;
     private OnDeviceStateChangeListener stateChangeListener;
+    private EnergyManager energyManager;
 
     public interface OnDeviceStateChangeListener {
         void onDeviceStateChanged(String deviceId, boolean newState);
@@ -42,6 +49,7 @@ public class LocalDeviceManager {
     private LocalDeviceManager(Context context) {
         preferences = context.getApplicationContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         deviceStates = new HashMap<>();
+        energyManager = EnergyManager.getInstance(context);
         loadDeviceStates();
     }
 
@@ -117,6 +125,12 @@ public class LocalDeviceManager {
             state.isOn = isOn;
             state.lastUpdateTime = System.currentTimeMillis();
             saveDeviceStates();
+            
+            // 通知能耗管理器记录设备状态变化
+            if (energyManager != null) {
+                energyManager.onDeviceStateChanged(deviceId, isOn);
+            }
+            
             if (stateChangeListener != null) {
                 stateChangeListener.onDeviceStateChanged(deviceId, isOn);
             }

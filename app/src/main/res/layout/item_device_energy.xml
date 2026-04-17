@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="@drawable/bg_card"
+    android:layout_marginTop="8dp">
+
+    <!-- 设备图标 -->
+    <ImageView
+        android:id="@+id/iv_device_icon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@drawable/light" />
+
+    <!-- 设备信息 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp">
+
+        <TextView
+            android:id="@+id/tv_device_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="客厅灯"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tv_device_power"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="60W"
+            android:textSize="12sp"
+            android:textColor="@color/text_hint"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+    <!-- 能耗数据 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/tv_energy_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.5度"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary" />
+
+        <TextView
+            android:id="@+id/tv_usage_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用2小时"
+            android:textSize="12sp"
+            android:textColor="@color/text_hint"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

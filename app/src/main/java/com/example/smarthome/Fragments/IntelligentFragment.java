@@ -3,6 +3,7 @@ package com.example.smarthome.Fragments;
 import static android.content.Context.MODE_PRIVATE;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,15 +21,34 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.smarthome.Adapter.DeviceEnergyAdapter;
+import com.example.smarthome.Model.DailyEnergyRecord;
+import com.example.smarthome.Model.DeviceEnergy;
 import com.example.smarthome.Model.WeatherModel;
 import com.example.smarthome.MQTT.MqttConnectionManager;
 import com.example.smarthome.MQTT.MqttManager;
 import com.example.smarthome.R;
+import com.example.smarthome.Service.EnergyManager;
 import com.example.smarthome.Service.WeatherService;
 import com.example.smarthome.Utils.LocalDeviceManager;
 import com.example.smarthome.Utils.ModeManager;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.android.material.switchmaterial.SwitchMaterial;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * 智能模式控制Fragment
@@ -94,6 +115,24 @@ public class IntelligentFragment extends Fragment {
     
     private final Handler handler = new Handler(Looper.getMainLooper());
     private static final long DEBOUNCE_DELAY_MS = 800;
+    
+    // 能耗统计相关组件
+    private EnergyManager energyManager;
+    private LineChart chartEnergy;
+    private RecyclerView rvDeviceEnergy;
+    private DeviceEnergyAdapter deviceEnergyAdapter;
+    private LinearLayout btnToggleDetails;
+    private ImageView ivToggleIcon;
+    private TextView tvTodayEnergy;
+    private TextView tvTodayUsage;
+    private View cardEnergyStatistics;
+    private boolean isDetailsExpanded = false;
+    
+    // 实时能耗更新定时器
+    private Runnable energyUpdateRunnable;
+    private static final long ENERGY_UPDATE_INTERVAL = 5000; // 5秒更新统计数据
+    private static final long CHART_UPDATE_INTERVAL = 60000; // 1分钟更新图表
+    private long lastChartUpdateTime = 0;
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -106,6 +145,7 @@ public class IntelligentFragment extends Fragment {
             initName();
             initCardViews(view);
             initSwitchListeners();
+            initEnergyStatistics(view);
             updateCurrentModeDisplay();
             fetchWeather();
         } catch (Exception e) {
@@ -123,6 +163,7 @@ public class IntelligentFragment extends Fragment {
             localDeviceManager = LocalDeviceManager.getInstance(requireContext());
             mqttConnectionManager = MqttConnectionManager.getInstance(requireContext());
             weatherService = WeatherService.getInstance();
+            energyManager = EnergyManager.getInstance(requireContext());
             
             livingLedManager = mqttConnectionManager.getOrCreateManager(
                     "ch1hpsnpie8hxwuj", "odoscHX24A", "state");
@@ -183,6 +224,16 @@ public class IntelligentFragment extends Fragment {
                                 updateCurrentModeDisplay();
                             }
                         });
+                    }
+                });
+            }
+            
+            // 设置本地设备状态变化监听，同步能耗统计
+            if (localDeviceManager != null) {
+                localDeviceManager.setOnDeviceStateChangeListener((deviceId, isOn) -> {
+                    if (energyManager != null) {
+                        energyManager.onDeviceStateChanged(deviceId, isOn);
+                        Log.d(TAG, "设备状态变化: " + deviceId + " -> " + isOn);
                     }
                 });
             }
@@ -488,6 +539,10 @@ public class IntelligentFragment extends Fragment {
             if (livingLedManager != null) {
                 livingLedManager.publish("state", true);
                 Log.d(TAG, "客厅灯指令发送: state=true");
+                // 记录能耗统计
+                if (energyManager != null) {
+                    energyManager.onDeviceStateChanged("living_led", true);
+                }
             }
             
             showToast("回家模式已激活");
@@ -528,14 +583,26 @@ public class IntelligentFragment extends Fragment {
             if (livingLedManager != null) {
                 livingLedManager.publish("state", false);
                 Log.d(TAG, "客厅灯指令发送: state=false");
+                // 记录能耗统计
+                if (energyManager != null) {
+                    energyManager.onDeviceStateChanged("living_led", false);
+                }
             }
             if (diningLedManager != null) {
                 diningLedManager.publish("state", false);
                 Log.d(TAG, "餐厅灯指令发送: state=false");
+                // 记录能耗统计
+                if (energyManager != null) {
+                    energyManager.onDeviceStateChanged("dining_led", false);
+                }
             }
             if (cameraManager != null) {
                 cameraManager.publish("camera_status", true);
                 Log.d(TAG, "摄像头指令发送: camera_status=true");
+                // 记录能耗统计
+                if (energyManager != null) {
+                    energyManager.onDeviceStateChanged("living_camera", true);
+                }
             }
             
             closeAllLocalDevices();
@@ -675,12 +742,14 @@ public class IntelligentFragment extends Fragment {
     public void onPause() {
         super.onPause();
         isFragmentActive = false;
+        stopEnergyUpdateTimer();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         isFragmentActive = false;
+        stopEnergyUpdateTimer();
         
         if (mqttConnectionManager != null) {
             mqttConnectionManager.releaseManager("ch1hpsnpie8hxwuj", "state");
@@ -702,6 +771,258 @@ public class IntelligentFragment extends Fragment {
                     Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+    }
+    
+    /**
+     * 初始化能耗统计模块
+     */
+    private void initEnergyStatistics(View view) {
+        cardEnergyStatistics = view.findViewById(R.id.card_energy_statistics);
+        if (cardEnergyStatistics == null) return;
+        
+        // 初始化图表
+        chartEnergy = cardEnergyStatistics.findViewById(R.id.chart_energy);
+        rvDeviceEnergy = cardEnergyStatistics.findViewById(R.id.rv_device_energy);
+        btnToggleDetails = cardEnergyStatistics.findViewById(R.id.btn_toggle_details);
+        ivToggleIcon = cardEnergyStatistics.findViewById(R.id.iv_toggle_icon);
+        tvTodayEnergy = cardEnergyStatistics.findViewById(R.id.tv_today_energy);
+        tvTodayUsage = cardEnergyStatistics.findViewById(R.id.tv_today_usage);
+        
+        // 初始化设备能耗列表
+        deviceEnergyAdapter = new DeviceEnergyAdapter();
+        rvDeviceEnergy.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvDeviceEnergy.setAdapter(deviceEnergyAdapter);
+        
+        // 设置实时能耗更新回调
+        deviceEnergyAdapter.setEnergyUpdateCallback(new DeviceEnergyAdapter.EnergyUpdateCallback() {
+            @Override
+            public double getRealtimeEnergy(String deviceId) {
+                return energyManager != null ? energyManager.getDeviceRealtimeEnergy(deviceId) : 0;
+            }
+            
+            @Override
+            public double getRealtimeUsageHours(String deviceId) {
+                return energyManager != null ? energyManager.getDeviceRealtimeUsageHours(deviceId) : 0;
+            }
+        });
+        
+        // 设置展开/收起按钮
+        btnToggleDetails.setOnClickListener(v -> toggleEnergyDetails());
+        
+        // 初始化图表样式
+        setupChartStyle();
+        
+        // 加载能耗数据
+        loadEnergyData();
+    }
+    
+    /**
+     * 设置图表样式
+     */
+    private void setupChartStyle() {
+        if (chartEnergy == null) return;
+        
+        // 图表基本设置
+        chartEnergy.setDrawGridBackground(false);
+        chartEnergy.setDrawBorders(false);
+        chartEnergy.setDescription(null);
+        chartEnergy.setTouchEnabled(true);
+        chartEnergy.setDragEnabled(true);
+        chartEnergy.setScaleEnabled(true);
+        chartEnergy.setPinchZoom(true);
+        chartEnergy.getLegend().setEnabled(true);
+        chartEnergy.getLegend().setTextColor(0xFF666666);
+        chartEnergy.getLegend().setTextSize(10f);
+        
+        // X轴设置
+        XAxis xAxis = chartEnergy.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTextColor(0xFF666666);
+        xAxis.setTextSize(10f);
+        xAxis.setDrawGridLines(false);
+        xAxis.setGranularity(1f);
+        
+        // Y轴设置 - 使用瓦时作为单位，便于阅读
+        YAxis leftAxis = chartEnergy.getAxisLeft();
+        leftAxis.setTextColor(0xFF666666);
+        leftAxis.setTextSize(10f);
+        leftAxis.setDrawGridLines(true);
+        leftAxis.setGridColor(0x33999999);
+        leftAxis.setAxisMinimum(0f);
+        leftAxis.setLabelCount(5, true);
+        
+        chartEnergy.getAxisRight().setEnabled(false);
+    }
+    
+    /**
+     * 加载能耗数据
+     */
+    private void loadEnergyData() {
+        if (energyManager == null) return;
+        
+        // 初始化能耗数据（历史数据为0）
+        energyManager.generateDemoData();
+        
+        // 更新今日统计
+        updateTodayStatistics();
+        
+        // 更新图表
+        updateEnergyChart();
+        
+        // 更新设备列表
+        updateDeviceEnergyList();
+        
+        // 启动实时更新定时器
+        startEnergyUpdateTimer();
+    }
+    
+    /**
+     * 更新今日统计数据（使用实时数据）
+     */
+    private void updateTodayStatistics() {
+        if (energyManager == null) return;
+        
+        // 使用实时能耗数据（包含正在运行的设备）
+        double todayEnergy = energyManager.getTodayRealtimeTotalEnergy();
+        double todayUsage = energyManager.getTodayRealtimeTotalUsageHours();
+        
+        if (tvTodayEnergy != null) {
+            if (todayEnergy < 1) {
+                tvTodayEnergy.setText(String.format("%.1f瓦时", todayEnergy * 1000));
+            } else {
+                tvTodayEnergy.setText(String.format("%.2f度", todayEnergy));
+            }
+        }
+        
+        if (tvTodayUsage != null) {
+            // 以分钟为基本单位显示
+            int totalMinutes = (int) (todayUsage * 60);
+            int hours = totalMinutes / 60;
+            int minutes = totalMinutes % 60;
+            
+            if (hours > 0) {
+                tvTodayUsage.setText(String.format("%d时%d分", hours, minutes));
+            } else {
+                tvTodayUsage.setText(String.format("%d分钟", minutes));
+            }
+        }
+    }
+    
+    /**
+     * 启动能耗实时更新定时器
+     */
+    private void startEnergyUpdateTimer() {
+        if (energyUpdateRunnable == null) {
+            energyUpdateRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (isFragmentActive && energyManager != null) {
+                        // 每秒更新统计数据
+                        updateTodayStatistics();
+                        
+                        // 如果详情展开，也更新设备列表
+                        if (isDetailsExpanded) {
+                            updateDeviceEnergyList();
+                        }
+                        
+                        // 每分钟更新图表
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - lastChartUpdateTime >= CHART_UPDATE_INTERVAL) {
+                            updateEnergyChart();
+                            lastChartUpdateTime = currentTime;
+                        }
+                        
+                        handler.postDelayed(this, ENERGY_UPDATE_INTERVAL);
+                    }
+                }
+            };
+        }
+        lastChartUpdateTime = System.currentTimeMillis();
+        handler.post(energyUpdateRunnable);
+    }
+    
+    /**
+     * 停止能耗实时更新定时器
+     */
+    private void stopEnergyUpdateTimer() {
+        if (energyUpdateRunnable != null) {
+            handler.removeCallbacks(energyUpdateRunnable);
+        }
+    }
+    
+    /**
+     * 更新能耗图表
+     */
+    private void updateEnergyChart() {
+        if (chartEnergy == null || energyManager == null) return;
+        
+        List<DailyEnergyRecord> records = energyManager.getRecent7DaysRecords();
+        if (records.isEmpty()) return;
+        
+        // 准备数据 - 使用瓦时作为单位，数值更易读
+        List<Entry> entries = new ArrayList<>();
+        List<String> dateLabels = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd", Locale.getDefault());
+        
+        for (int i = 0; i < records.size(); i++) {
+            DailyEnergyRecord record = records.get(i);
+            // 转换为瓦时（Wh）显示
+            float energyWh = (float) (record.getTotalEnergyKWh() * 1000);
+            entries.add(new Entry(i, energyWh));
+            
+            // 格式化日期标签
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(record.getTimestamp());
+            dateLabels.add(sdf.format(cal.getTime()));
+        }
+        
+        // 创建数据集
+        LineDataSet dataSet = new LineDataSet(entries, "每日耗电量(瓦时)");
+        dataSet.setColor(0xFF4CAF50);
+        dataSet.setCircleColor(0xFF4CAF50);
+        dataSet.setCircleRadius(4f);
+        dataSet.setCircleHoleRadius(2f);
+        dataSet.setLineWidth(2f);
+        dataSet.setValueTextSize(10f);
+        dataSet.setValueTextColor(0xFF666666);
+        dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        dataSet.setDrawFilled(true);
+        dataSet.setFillColor(0x334CAF50);
+        
+        // 设置数据
+        LineData lineData = new LineData(dataSet);
+        chartEnergy.setData(lineData);
+        
+        // 设置X轴标签
+        chartEnergy.getXAxis().setValueFormatter(new IndexAxisValueFormatter(dateLabels));
+        
+        // 刷新图表
+        chartEnergy.invalidate();
+    }
+    
+    /**
+     * 更新设备能耗列表
+     */
+    private void updateDeviceEnergyList() {
+        if (deviceEnergyAdapter == null || energyManager == null) return;
+        
+        List<DeviceEnergy> devices = energyManager.getAllDeviceEnergy();
+        deviceEnergyAdapter.setDeviceList(devices);
+    }
+    
+    /**
+     * 切换能耗详情展开/收起状态
+     */
+    private void toggleEnergyDetails() {
+        isDetailsExpanded = !isDetailsExpanded;
+        
+        if (rvDeviceEnergy != null) {
+            rvDeviceEnergy.setVisibility(isDetailsExpanded ? View.VISIBLE : View.GONE);
+        }
+        
+        if (ivToggleIcon != null) {
+            ivToggleIcon.setRotation(isDetailsExpanded ? 180f : 0f);
         }
     }
 }
