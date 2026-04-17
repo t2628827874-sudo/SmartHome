@@ -532,6 +532,7 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        setUserName();
         if (currentTabPosition == 0 && allTabAdapter != null) {
             updateAllTabStats();
         }

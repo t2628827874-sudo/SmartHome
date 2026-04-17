@@ -24,6 +24,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
+
 import com.example.smarthome.Activities.UserInfoActivity;
 import com.example.smarthome.Adapter.BannerPagerAdpater;
 import com.example.smarthome.Adapter.BannerTransformer;
@@ -122,6 +124,7 @@ public class MyInfoFragment extends Fragment implements View.OnClickListener {
                 onFragmentFirstVisible();
             } else {
                 loadUserName();
+                isAvatarLoaded = false;
                 loadAvatarAsync();
                 startAutoScroll();
             }
@@ -370,20 +373,40 @@ public class MyInfoFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.btn_logout) {
-            if (getActivity() != null) {
-                SharedPreferences sp = getActivity().getSharedPreferences("userinfo", Context.MODE_PRIVATE);
-                sp.edit().putBoolean("islogin", false).apply();
-                
-                Intent intent = new Intent(getActivity(), MainActivity.class);
-                startActivity(intent);
-                Toast.makeText(getActivity(), "退出成功", Toast.LENGTH_SHORT).show();
-                getActivity().finish();
-            }
+            showLogoutConfirmDialog();
         }
         
         if (v.getId() == R.id.myinfo_head) {
             Intent intent = new Intent(getActivity(), UserInfoActivity.class);
             startActivity(intent);
         }
+    }
+    
+    private void showLogoutConfirmDialog() {
+        if (getActivity() == null) return;
+        
+        new AlertDialog.Builder(getActivity())
+                .setTitle("退出登录")
+                .setMessage("确定要退出登录吗？")
+                .setPositiveButton("确定", (dialog, which) -> {
+                    performLogout();
+                })
+                .setNegativeButton("取消", (dialog, which) -> {
+                    dialog.dismiss();
+                })
+                .setCancelable(true)
+                .show();
+    }
+    
+    private void performLogout() {
+        if (getActivity() == null) return;
+        
+        SharedPreferences sp = getActivity().getSharedPreferences("userinfo", Context.MODE_PRIVATE);
+        sp.edit().putBoolean("islogin", false).apply();
+        
+        Intent intent = new Intent(getActivity(), MainActivity.class);
+        startActivity(intent);
+        Toast.makeText(getActivity(), "退出成功", Toast.LENGTH_SHORT).show();
+        getActivity().finish();
     }
 }

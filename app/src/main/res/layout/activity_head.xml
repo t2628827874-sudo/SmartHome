@@ -5,6 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background_myinfo"
     tools:context=".Activities.HeadActivity"
     android:fitsSystemWindows="true">
 
@@ -12,9 +13,11 @@
         android:id="@+id/head_back"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:navigationIcon="?attr/homeAsUpIndicator">
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/text_primary">
 
     </androidx.appcompat.widget.Toolbar>
 
@@ -24,7 +27,7 @@
         android:layout_height="135dp"
         android:layout_marginTop="52dp"
         app:cardCornerRadius="67.5dp"
-        app:cardElevation="4dp"
+        app:cardElevation="8dp"
         app:cardPreventCornerOverlap="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -46,7 +49,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="40dp"
         android:text="上传图片，换头像"
-        android:textSize="40sp"
+        android:textSize="20sp"
+        android:backgroundTint="@color/primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/card_avatar" />

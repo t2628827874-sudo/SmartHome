@@ -664,8 +664,8 @@ public class IntelligentFragment extends Fragment {
     public void onResume() {
         super.onResume();
         isFragmentActive = true;
+        initName();
         updateCurrentModeDisplay();
-        // 刷新天气数据
         if (weatherService != null) {
             fetchWeather();
         }
