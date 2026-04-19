@@ -13,11 +13,13 @@ import com.example.smarthome.Model.DeviceEnergy;
 import com.example.smarthome.R;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
  * 设备能耗列表适配器
- * 用于展示各设备的能耗详情，支持实时更新
+ * 用于展示各设备的能耗详情，支持实时更新和按耗电量排序
  */
 public class DeviceEnergyAdapter extends RecyclerView.Adapter<DeviceEnergyAdapter.ViewHolder> {
     
@@ -33,9 +35,48 @@ public class DeviceEnergyAdapter extends RecyclerView.Adapter<DeviceEnergyAdapte
         double getRealtimeUsageHours(String deviceId);
     }
     
+    /**
+     * 设置设备列表并按耗电量降序排序
+     */
     public void setDeviceList(List<DeviceEnergy> devices) {
-        this.deviceList = devices != null ? devices : new ArrayList<>();
+        this.deviceList = devices != null ? new ArrayList<>(devices) : new ArrayList<>();
+        sortDevicesByEnergy();
         notifyDataSetChanged();
+    }
+    
+    /**
+     * 更新数据并重新排序（用于实时刷新）
+     */
+    public void updateAndSort() {
+        sortDevicesByEnergy();
+        notifyDataSetChanged();
+    }
+    
+    /**
+     * 按耗电量降序排序设备列表
+     */
+    private void sortDevicesByEnergy() {
+        if (deviceList.isEmpty()) return;
+        
+        Collections.sort(deviceList, new Comparator<DeviceEnergy>() {
+            @Override
+            public int compare(DeviceEnergy d1, DeviceEnergy d2) {
+                double energy1 = getDeviceRealtimeEnergy(d1);
+                double energy2 = getDeviceRealtimeEnergy(d2);
+                // 降序排列：能耗高的排前面
+                return Double.compare(energy2, energy1);
+            }
+        });
+    }
+    
+    /**
+     * 获取设备的实时能耗
+     */
+    private double getDeviceRealtimeEnergy(DeviceEnergy device) {
+        if (energyUpdateCallback != null) {
+            return energyUpdateCallback.getRealtimeEnergy(device.getDeviceId());
+        }
+        return device.getTodayEnergyKWh();
     }
     
     public void setEnergyUpdateCallback(EnergyUpdateCallback callback) {
@@ -54,21 +95,25 @@ public class DeviceEnergyAdapter extends RecyclerView.Adapter<DeviceEnergyAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         DeviceEnergy device = deviceList.get(position);
         
+        // 设置排名标识（前3名显示特殊标识）
+        if (position < 3 && getDeviceRealtimeEnergy(device) > 0) {
+            String rankIcon = position == 0 ? "🥇" : (position == 1 ? "🥈" : "🥉");
+            holder.tvDeviceName.setText(rankIcon + " " + device.getDeviceName());
+        } else {
+            holder.tvDeviceName.setText(device.getDeviceName());
+        }
+        
         // 设置设备图标
         holder.ivDeviceIcon.setImageResource(device.getIconResId());
-        
-        // 设置设备名称
-        holder.tvDeviceName.setText(device.getDeviceName());
         
         // 设置功率信息
         holder.tvDevicePower.setText(String.format("%.0fW", device.getPowerWatts()));
         
         // 获取实时能耗数据
-        double realtimeEnergy = device.getTodayEnergyKWh();
+        double realtimeEnergy = getDeviceRealtimeEnergy(device);
         double realtimeUsage = device.getTodayUsageHours();
         
         if (energyUpdateCallback != null) {
-            realtimeEnergy = energyUpdateCallback.getRealtimeEnergy(device.getDeviceId());
             realtimeUsage = energyUpdateCallback.getRealtimeUsageHours(device.getDeviceId());
         }
         
@@ -94,10 +139,8 @@ public class DeviceEnergyAdapter extends RecyclerView.Adapter<DeviceEnergyAdapte
         
         // 如果设备正在运行，显示运行状态指示
         if (device.isRunning()) {
-            holder.tvDeviceName.setText(device.getDeviceName() + " ●");
             holder.tvDeviceName.setTextColor(0xFF4CAF50);
         } else {
-            holder.tvDeviceName.setText(device.getDeviceName());
             holder.tvDeviceName.setTextColor(0xFF333333);
         }
     }

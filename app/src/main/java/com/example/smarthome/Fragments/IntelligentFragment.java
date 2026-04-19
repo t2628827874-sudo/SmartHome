@@ -918,15 +918,15 @@ public class IntelligentFragment extends Fragment {
                 @Override
                 public void run() {
                     if (isFragmentActive && energyManager != null) {
-                        // 每秒更新统计数据
+                        // 每次更新统计数据
                         updateTodayStatistics();
                         
-                        // 如果详情展开，也更新设备列表
+                        // 如果详情展开，实时刷新设备列表并重新排序
                         if (isDetailsExpanded) {
-                            updateDeviceEnergyList();
+                            refreshDeviceEnergyList();
                         }
                         
-                        // 每分钟更新图表
+                        // 定期更新图表
                         long currentTime = System.currentTimeMillis();
                         if (currentTime - lastChartUpdateTime >= CHART_UPDATE_INTERVAL) {
                             updateEnergyChart();
@@ -1002,13 +1002,21 @@ public class IntelligentFragment extends Fragment {
     }
     
     /**
-     * 更新设备能耗列表
+     * 更新设备能耗列表（按耗电量降序排序）
      */
     private void updateDeviceEnergyList() {
         if (deviceEnergyAdapter == null || energyManager == null) return;
         
         List<DeviceEnergy> devices = energyManager.getAllDeviceEnergy();
         deviceEnergyAdapter.setDeviceList(devices);
+    }
+    
+    /**
+     * 实时刷新设备能耗列表（重新排序）
+     */
+    private void refreshDeviceEnergyList() {
+        if (deviceEnergyAdapter == null) return;
+        deviceEnergyAdapter.updateAndSort();
     }
     
     /**

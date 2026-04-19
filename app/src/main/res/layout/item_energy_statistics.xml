@@ -136,13 +136,28 @@
             android:clickable="true"
             android:focusable="true">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="设备用电详情"
-                android:textSize="14sp"
-                android:textColor="@color/text_primary" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="设备用电详情"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="按耗电量降序排列"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
 
             <ImageView
                 android:id="@+id/iv_toggle_icon"
