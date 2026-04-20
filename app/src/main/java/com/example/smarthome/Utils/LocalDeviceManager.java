@@ -158,6 +158,10 @@ public class LocalDeviceManager {
         return count;
     }
 
+    public int getDeviceCount() {
+        return deviceStates.size();
+    }
+
     public DeviceState getDevice(String deviceId) {
         return deviceStates.get(deviceId);
     }
