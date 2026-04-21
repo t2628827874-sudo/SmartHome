@@ -60,7 +60,7 @@
                     android:id="@+id/tv_weather_temp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="25°"
+                    android:text="--°"
                     android:textSize="48sp"
                     android:textStyle="bold"
                     android:textColor="#FF6B35" />
@@ -69,7 +69,7 @@
                     android:id="@+id/tv_weather_desc"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="晴"
+                    android:text="--"
                     android:textSize="16sp"
                     android:textColor="#666666"
                     android:layout_marginTop="4dp" />
@@ -99,7 +99,7 @@
                         android:id="@+id/tv_weather_temp_high"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="28°"
+                        android:text="--°"
                         android:textSize="12sp"
                         android:textColor="#FF6B35" />
 
@@ -114,7 +114,7 @@
                         android:id="@+id/tv_weather_temp_low"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="18°"
+                        android:text="--°"
                         android:textSize="12sp"
                         android:textColor="#4A90D9" />
 
@@ -138,7 +138,7 @@
                         android:id="@+id/tv_weather_wind"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="东南风 3级"
+                        android:text="--"
                         android:textSize="12sp"
                         android:textColor="#666666" />
 
@@ -162,7 +162,7 @@
                         android:id="@+id/tv_weather_humidity"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="65%"
+                        android:text="--%"
                         android:textSize="12sp"
                         android:textColor="#666666" />
 
@@ -186,7 +186,7 @@
                         android:id="@+id/tv_weather_air"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="优 45"
+                        android:text="--"
                         android:textSize="12sp"
                         android:textColor="#4CAF50" />
 

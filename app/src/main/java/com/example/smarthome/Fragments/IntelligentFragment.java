@@ -313,23 +313,44 @@ public class IntelligentFragment extends Fragment {
      * 获取天气数据
      */
     private void fetchWeather() {
-        if (weatherService == null) return;
+        Log.d(TAG, "========== fetchWeather 开始 ==========");
+        Log.d(TAG, "weatherService: " + (weatherService != null ? "已初始化" : "未初始化"));
+        Log.d(TAG, "DEFAULT_CITY: " + DEFAULT_CITY);
+        
+        if (weatherService == null) {
+            Log.e(TAG, "weatherService为空，无法获取天气数据");
+            return;
+        }
         
         showWeatherLoading(true);
         
         weatherService.getWeather(DEFAULT_CITY, new WeatherService.WeatherCallback() {
             @Override
             public void onSuccess(WeatherModel weather) {
+                Log.d(TAG, "========== 天气数据获取成功 ==========");
+                Log.d(TAG, "城市: " + (weather != null ? weather.getCity() : "null"));
+                Log.d(TAG, "温度: " + (weather != null ? weather.getTemperature() : "null"));
+                Log.d(TAG, "天气: " + (weather != null ? weather.getWeather() : "null"));
+                Log.d(TAG, "isFragmentActive: " + isFragmentActive);
+                Log.d(TAG, "getActivity: " + (getActivity() != null ? "不为空" : "为空"));
+                
                 if (isFragmentActive && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         showWeatherLoading(false);
                         updateWeatherDisplay(weather);
+                        Log.d(TAG, "天气UI更新完成");
                     });
+                } else {
+                    Log.w(TAG, "Fragment不活跃或Activity为空，跳过UI更新");
                 }
             }
             
             @Override
             public void onError(String errorMessage) {
+                Log.e(TAG, "========== 天气数据获取失败 ==========");
+                Log.e(TAG, "错误信息: " + errorMessage);
+                Log.e(TAG, "isFragmentActive: " + isFragmentActive);
+                
                 if (isFragmentActive && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         showWeatherLoading(false);
@@ -365,8 +386,10 @@ public class IntelligentFragment extends Fragment {
      * API返回扁平结构数据，直接从WeatherModel获取
      */
     private void updateWeatherDisplay(WeatherModel weather) {
+        Log.d(TAG, "========== updateWeatherDisplay 开始 ==========");
+        
         if (weather == null || cardWeather == null) {
-            Log.e(TAG, "天气数据为空");
+            Log.e(TAG, "天气数据为空或cardWeather为空");
             return;
         }
         
@@ -374,6 +397,7 @@ public class IntelligentFragment extends Fragment {
             // 城市名称
             if (tvWeatherCity != null) {
                 String cityName = weather.getCity();
+                Log.d(TAG, "城市: " + cityName);
                 if (cityName != null && !cityName.isEmpty()) {
                     tvWeatherCity.setText(cityName + "天气");
                 } else {
@@ -384,6 +408,7 @@ public class IntelligentFragment extends Fragment {
             // 更新时间
             if (tvWeatherUpdateTime != null) {
                 String updateTime = weather.getUpdateTime();
+                Log.d(TAG, "更新时间: " + updateTime);
                 if (updateTime != null && !updateTime.isEmpty()) {
                     tvWeatherUpdateTime.setText(updateTime + " 更新");
                 } else {
@@ -393,12 +418,15 @@ public class IntelligentFragment extends Fragment {
             
             // 温度 - 使用格式化方法确保数字格式
             if (tvWeatherTemp != null) {
-                tvWeatherTemp.setText(weather.getFormattedTemperature());
+                String tempFormatted = weather.getFormattedTemperature();
+                Log.d(TAG, "温度(格式化): " + tempFormatted + ", 原始值: " + weather.getTemperature());
+                tvWeatherTemp.setText(tempFormatted);
             }
             
             // 天气描述
             if (tvWeatherDesc != null) {
                 String weatherDesc = weather.getWeather();
+                Log.d(TAG, "天气描述: " + weatherDesc);
                 if (weatherDesc != null && !weatherDesc.isEmpty()) {
                     tvWeatherDesc.setText(weatherDesc);
                 } else {
@@ -408,18 +436,23 @@ public class IntelligentFragment extends Fragment {
             
             // 最高温度
             if (tvWeatherTempHigh != null) {
-                tvWeatherTempHigh.setText(weather.getFormattedTemperatureDay());
+                String tempDayFormatted = weather.getFormattedTemperatureDay();
+                Log.d(TAG, "最高温度(格式化): " + tempDayFormatted + ", 原始值: " + weather.getTemperatureDay());
+                tvWeatherTempHigh.setText(tempDayFormatted);
             }
             
             // 最低温度
             if (tvWeatherTempLow != null) {
-                tvWeatherTempLow.setText(weather.getFormattedTemperatureNight());
+                String tempNightFormatted = weather.getFormattedTemperatureNight();
+                Log.d(TAG, "最低温度(格式化): " + tempNightFormatted + ", 原始值: " + weather.getTemperatureNight());
+                tvWeatherTempLow.setText(tempNightFormatted);
             }
             
             // 风力
             if (tvWeatherWind != null) {
                 String wind = weather.getWind();
                 String windSpeed = weather.getWindSpeed();
+                Log.d(TAG, "风力: " + wind + ", 风速: " + windSpeed);
                 StringBuilder windText = new StringBuilder();
                 if (wind != null && !wind.isEmpty()) {
                     windText.append(wind);
@@ -439,13 +472,16 @@ public class IntelligentFragment extends Fragment {
             
             // 湿度 - 使用格式化方法
             if (tvWeatherHumidity != null) {
-                tvWeatherHumidity.setText(weather.getFormattedHumidity());
+                String humidityFormatted = weather.getFormattedHumidity();
+                Log.d(TAG, "湿度(格式化): " + humidityFormatted + ", 原始值: " + weather.getHumidity());
+                tvWeatherHumidity.setText(humidityFormatted);
             }
             
             // 空气质量
             if (tvWeatherAir != null) {
                 String air = weather.getAir();
                 String airLevel = weather.getAirQualityLevel();
+                Log.d(TAG, "空气质量: " + air + ", 等级: " + airLevel);
                 if (air != null && !air.isEmpty()) {
                     tvWeatherAir.setText(airLevel + " " + air);
                     tvWeatherAir.setTextColor(weather.getAirQualityColor());
@@ -455,7 +491,8 @@ public class IntelligentFragment extends Fragment {
                 }
             }
             
-            Log.d(TAG, "天气数据更新成功: " + weather.getCity() + " " + weather.getFormattedTemperature() + " " + weather.getWeather());
+            Log.d(TAG, "========== 天气数据更新成功 ==========");
+            Log.d(TAG, "城市: " + weather.getCity() + " " + weather.getFormattedTemperature() + " " + weather.getWeather());
             
         } catch (Exception e) {
             Log.e(TAG, "更新天气显示失败: " + e.getMessage(), e);

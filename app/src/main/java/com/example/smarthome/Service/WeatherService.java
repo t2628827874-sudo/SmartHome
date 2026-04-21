@@ -43,7 +43,7 @@ public class WeatherService {
     private static final String APP_SECRET = "FeqO28GZ";
     private static final String CANGZHOU_CITY_ID = "101090701"; // 沧州城市ID
     
-    private static final long CACHE_DURATION_MS = 30 * 60 * 1000;
+    private static final long CACHE_DURATION_MS = 60 * 60 * 1000;
     
     private final OkHttpClient client;
     private final Gson gson;
@@ -88,6 +88,22 @@ public class WeatherService {
      * @param callback 回调接口
      */
     public void getWeather(String city, WeatherCallback callback) {
+        long currentTime = System.currentTimeMillis();
+        
+        if (cachedWeather != null && (currentTime - lastFetchTime) < CACHE_DURATION_MS) {
+            long remainingMinutes = (CACHE_DURATION_MS - (currentTime - lastFetchTime)) / (60 * 1000);
+            Log.d(TAG, "使用缓存数据，剩余有效期: " + remainingMinutes + "分钟");
+            notifySuccess(callback, cachedWeather);
+            return;
+        }
+        
+        if (cachedWeather != null) {
+            long expiredMinutes = (currentTime - lastFetchTime) / (60 * 1000);
+            Log.d(TAG, "缓存已过期 " + expiredMinutes + " 分钟，强制刷新");
+        } else {
+            Log.d(TAG, "无缓存数据，发起网络请求");
+        }
+        
         fetchWeatherFromApi(city, callback);
     }
     
@@ -105,12 +121,11 @@ public class WeatherService {
      * @param callback 回调接口
      */
     private void fetchWeatherFromApi(String city, WeatherCallback callback) {
-        // 清除旧缓存，确保获取最新数据
-        cachedWeather = null;
-        lastFetchTime = 0;
-        
         String url = buildRequestUrl(city);
-        Log.d(TAG, "请求天气API: " + url);
+        Log.d(TAG, "========== 天气API请求 ==========");
+        Log.d(TAG, "请求URL: " + url);
+        Log.d(TAG, "目标城市: " + city);
+        Log.d(TAG, "================================");
         
         Request request = new Request.Builder()
                 .url(url)

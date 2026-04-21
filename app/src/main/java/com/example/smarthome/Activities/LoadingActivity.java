@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.smarthome.MainActivity;
 import com.example.smarthome.R;
 import com.example.smarthome.Service.EnergyManager;
+import com.example.smarthome.Service.WeatherService;
 import com.example.smarthome.Utils.LocalDeviceManager;
 
 import java.util.concurrent.ExecutorService;
@@ -178,6 +179,9 @@ public class LoadingActivity extends AppCompatActivity {
      * 预加载资源
      */
     private void preloadResources() {
+        WeatherService weatherService = WeatherService.getInstance();
+        weatherService.clearCache();
+        Log.d(TAG, "已清除天气缓存，将获取最新数据");
         Log.d(TAG, "资源预加载完成");
     }
     
